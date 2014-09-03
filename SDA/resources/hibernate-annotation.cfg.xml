@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-configuration PUBLIC
+		"-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+		"http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+    <session-factory>
+    
+    	<!-- Database connection properties - Driver, URL, user, password -->
+        <property name="hibernate.connection.driver_class">oracle.jdbc.driver.OracleDriver</property>
+        <property name="hibernate.connection.url">jdbc:oracle:thin:@192.168.0.100:1521:orcl</property>
+        <property name="hibernate.connection.username">avantia</property>
+        <property name="hibernate.connection.password">avantia</property>
+        <property name="hibernate.default_schema">avantia</property>
+        
+        <!-- org.hibernate.HibernateException: No CurrentSessionContext configured! -->
+        <property name="hibernate.current_session_context_class">thread</property>
+         
+        <!-- Mapping with model class containing annotations -->
+        <mapping class="sv.avantia.depurador.agregadores.entidades.Agregadores"  />
+        <mapping class="sv.avantia.depurador.agregadores.entidades.Servicios"  />
+        <mapping class="sv.avantia.depurador.agregadores.entidades.Pais"  />
+        <mapping class="sv.avantia.depurador.agregadores.entidades.Metodos"  />
+        <mapping class="sv.avantia.depurador.agregadores.entidades.Parametros"  />
+        <mapping class="sv.avantia.depurador.agregadores.entidades.Respuesta"  />
+        <mapping class="sv.avantia.depurador.agregadores.entidades.Depuracion_bck"  />
+        <mapping class="sv.avantia.depurador.agregadores.entidades.Clientes_Tel"  />
+        
+    </session-factory>
+</hibernate-configuration>
