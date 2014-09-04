@@ -1,5 +1,6 @@
 package sv.avantia.depurador.agregadores.entidades;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import javax.persistence.CascadeType;
@@ -21,12 +22,48 @@ public class Metodos {
 	@Column(name = "ID", nullable = false)
 	private int id;
 
+	@ManyToOne
+	@JoinColumn(name = "ID_AGREGADOR")
+	private Agregadores agregador;
+
 	@Column(name = "NOMBRE", nullable = false)
 	private String nombre;
 
-	@ManyToOne
-	@JoinColumn(name = "ID_SERVICIOS")
-	private Servicios servicio;
+	@Column(name = "INPUTMESSAGENAME", nullable = false)
+	private String inputMessageName;
+
+	@Column(name = "INPUTMESSAGETEXT", nullable = false)
+	private String inputMessageText;
+
+	@Column(name = "NAMESPACEURI", nullable = false)
+	private String namespaceURI;
+
+	@Column(name = "SOAPACTIONURI", nullable = false)
+	private String SoapActionURI;
+
+	@Column(name = "STYLE", nullable = true)
+	private String style;
+
+	@Column(name = "TARGETMETHODNAME", nullable = true)
+	private String targetMethodName;
+
+	@Column(name = "TARGETOBJECTURI", nullable = true)
+	private String targetObjectURI;
+
+	@Column(name = "TARGETURL", nullable = true)
+	private String targetURL;
+
+	@Column(name = "WSDL_AGREGADOR", nullable = true)
+	private String wsdl_Agregador;
+
+	@Column(name = "USUARIO", nullable = true)
+	private String usuario;
+
+	@Column(name = "CONTRASENIA", nullable = true)
+	private String contrasenia;
+
+	@Column(name = "SERVICE_NAME", nullable = true)
+	private String serviceName;
 
 	@OneToMany(fetch = FetchType.EAGER, mappedBy = "metodo", cascade = { CascadeType.ALL })
 	private Set<Parametros> parametros;
@@ -37,14 +74,20 @@ public class Metodos {
 	@OneToMany(fetch = FetchType.LAZY, mappedBy = "metodo", cascade = { CascadeType.ALL })
 	private Set<Depuracion_bck> depuraciones;
 
-	// private OperationInfo operacionSRV;
-
 	public int getId() {
 		return id;
 	}
 
 	public void setId(int id) {
 		this.id = id;
+	}
+
+	public Agregadores getAgregador() {
+		return agregador;
+	}
+
+	public void setAgregador(Agregadores agregador) {
+		this.agregador = agregador;
 	}
 
 	public String getNombre() {
@@ -55,15 +98,105 @@ public class Metodos {
 		this.nombre = nombre;
 	}
 
-	public Servicios getServicio() {
-		return servicio;
+	public String getInputMessageName() {
+		return inputMessageName;
 	}
 
-	public void setServicio(Servicios servicio) {
-		this.servicio = servicio;
+	public void setInputMessageName(String inputMessageName) {
+		this.inputMessageName = inputMessageName;
+	}
+
+	public String getInputMessageText() {
+		return inputMessageText;
+	}
+
+	public void setInputMessageText(String inputMessageText) {
+		this.inputMessageText = inputMessageText;
+	}
+
+	public String getNamespaceURI() {
+		return namespaceURI;
+	}
+
+	public void setNamespaceURI(String namespaceURI) {
+		this.namespaceURI = namespaceURI;
+	}
+
+	public String getSoapActionURI() {
+		return SoapActionURI;
+	}
+
+	public void setSoapActionURI(String soapActionURI) {
+		SoapActionURI = soapActionURI;
+	}
+
+	public String getStyle() {
+		return style;
+	}
+
+	public void setStyle(String style) {
+		this.style = style;
+	}
+
+	public String getTargetMethodName() {
+		return targetMethodName;
+	}
+
+	public void setTargetMethodName(String targetMethodName) {
+		this.targetMethodName = targetMethodName;
+	}
+
+	public String getTargetObjectURI() {
+		return targetObjectURI;
+	}
+
+	public void setTargetObjectURI(String targetObjectURI) {
+		this.targetObjectURI = targetObjectURI;
+	}
+
+	public String getTargetURL() {
+		return targetURL;
+	}
+
+	public void setTargetURL(String targetURL) {
+		this.targetURL = targetURL;
+	}
+
+	public String getWsdl_Agregador() {
+		return wsdl_Agregador;
+	}
+
+	public void setWsdl_Agregador(String wsdl_Agregador) {
+		this.wsdl_Agregador = wsdl_Agregador;
+	}
+
+	public String getUsuario() {
+		return usuario;
+	}
+
+	public void setUsuario(String usuario) {
+		this.usuario = usuario;
+	}
+
+	public String getContrasenia() {
+		return contrasenia;
+	}
+
+	public void setContrasenia(String contrasenia) {
+		this.contrasenia = contrasenia;
+	}
+
+	public String getServiceName() {
+		return serviceName;
+	}
+
+	public void setServiceName(String serviceName) {
+		this.serviceName = serviceName;
 	}
 
 	public Set<Parametros> getParametros() {
+		if(parametros == null)
+			parametros = new HashSet<Parametros>();
 		return parametros;
 	}
 
@@ -91,10 +224,5 @@ public class Metodos {
 	public String toString() {
 		return "Metodos [id=" + id + ", nombre=" + nombre + "]";
 	}
-	/*
-	 * public OperationInfo getOperacionSRV() { return operacionSRV; }
-	 * 
-	 * public void setOperacionSRV(OperationInfo operacionSRV) {
-	 * this.operacionSRV = operacionSRV; }
-	 */
+
 }

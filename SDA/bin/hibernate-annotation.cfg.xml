@@ -17,7 +17,6 @@
          
         <!-- Mapping with model class containing annotations -->
         <mapping class="sv.avantia.depurador.agregadores.entidades.Agregadores"  />
-        <mapping class="sv.avantia.depurador.agregadores.entidades.Servicios"  />
         <mapping class="sv.avantia.depurador.agregadores.entidades.Pais"  />
         <mapping class="sv.avantia.depurador.agregadores.entidades.Metodos"  />
         <mapping class="sv.avantia.depurador.agregadores.entidades.Parametros"  />

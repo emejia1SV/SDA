@@ -1,5 +1,6 @@
 package sv.avantia.depurador.agregadores.entidades;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import javax.persistence.CascadeType;
@@ -31,8 +32,8 @@ public class Agregadores {
 	@JoinColumn(name = "ID_PAIS")
 	private Pais pais;
 
-	@OneToMany(fetch = FetchType.EAGER, mappedBy="agregador", cascade={CascadeType.ALL})
-	private Set<Servicios> servicios;
+	@OneToMany(fetch = FetchType.EAGER, mappedBy = "agregador", cascade = { CascadeType.ALL })
+	private Set<Metodos> metodos;
 
 	public Agregadores() {
 
@@ -70,17 +71,19 @@ public class Agregadores {
 		this.pais = pais;
 	}
 
-	public Set<Servicios> getServicios() {
-		return servicios;
+	public Set<Metodos> getMetodos() {
+		if(metodos == null)
+			metodos = new HashSet<Metodos>();
+		return metodos;
 	}
 
-	public void setServicios(Set<Servicios> servicios) {
-		this.servicios = servicios;
+	public void setMetodos(Set<Metodos> metodos) {
+		this.metodos = metodos;
 	}
 
 	@Override
 	public String toString() {
-		return "Agregadores [id=" + id + ", nombre_agregador=" + nombre_agregador + "]";
+		return "Agregadores [id=" + id + ", nombre_agregador="
+				+ nombre_agregador + "]";
 	}
-
 }

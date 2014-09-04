@@ -5,6 +5,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,7 @@ import javax.wsdl.factory.WSDLFactory;
 import javax.wsdl.xml.WSDLReader;
 import javax.xml.namespace.QName;
 
+import org.apache.log4j.Logger;
 import org.exolab.castor.xml.schema.ComplexType;
 import org.exolab.castor.xml.schema.ElementDecl;
 import org.exolab.castor.xml.schema.Group;
@@ -37,19 +39,29 @@ import org.exolab.castor.xml.schema.Particle;
 import org.exolab.castor.xml.schema.Schema;
 import org.exolab.castor.xml.schema.Structure;
 import org.exolab.castor.xml.schema.XMLType;
+import org.hibernate.HibernateException;
+import org.hibernate.Session;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import sv.avantia.depurador.agregadores.entidades.Agregadores;
+import sv.avantia.depurador.agregadores.entidades.Metodos;
+import sv.avantia.depurador.agregadores.entidades.Pais;
+import sv.avantia.depurador.agregadores.entidades.Parametros;
+import sv.avantia.depurador.agregadores.jdbc.SessionFactoryUtil;
+
 import com.cladonia.xml.webservice.soap.SOAPClient;
-import com.cladonia.xml.webservice.wsdl.OperationInfo;
 import com.cladonia.xml.webservice.wsdl.ServiceInfo;
 import com.cladonia.xml.webservice.wsdl.WSDLException;
 import com.cladonia.xml.webservice.wsdl.XMLSupport;
 import com.ibm.wsdl.extensions.schema.SchemaImpl;
 
 public class Cliente {
+	
+	/* Get actual class name to be printed on */
+	public static Logger logger = Logger.getLogger("avantiaLogger");
 	
 	public Cliente() throws WSDLException
 	{
@@ -102,7 +114,7 @@ public class Cliente {
               ServiceInfo serviceInfo = new ServiceInfo();
 
               // populate the new component from the WSDL Definition read
-              populateInfo(serviceInfo, (Service)svcIter.next());
+              populateInfo( (Service)svcIter.next(), null);
 
               // add the new component to the List to be returned
               serviceList.add(serviceInfo);
@@ -135,7 +147,7 @@ public class Cliente {
 	 *
 	 * @return The response SOAP Envelope as a String
 	 */
-	public static String invokeOperation(OperationInfo operation) throws WSDLException
+	public static String invokeOperation(Metodos operation) throws WSDLException
 	{
 		try{
 			return invokeOperation(operation,null);
@@ -155,7 +167,7 @@ public class Cliente {
 	 *
 	 * @return The response SOAP Envelope as a String
 	 */
-	public static String invokeOperation(OperationInfo operation,File[] attachments)
+	public static String invokeOperation(Metodos operation,File[] attachments)
 	throws WSDLException
 	{
 		try{
@@ -248,7 +260,7 @@ public class Cliente {
 		System.out.println("Starting the WSDL Parse..");
 		Cliente wsdlparser = new Cliente();
 		
-		OperationInfo operation = new OperationInfo("saludo");
+		Metodos operation = new Metodos();
 		operation.setInputMessageName("saludoRequest");
 		operation.setInputMessageText("<?xml version=\"1.0\" encoding=\"UTF-8\"?> <SOAP-ENV:Envelope xmlns:SOAP-ENC=\"http://schemas.xmlsoap.org/soap/encoding/\" xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><SOAP-ENV:Body xmlns=\"http://cadena.webservices.test.com\"><saludo><texto>EDWIN</texto></saludo></SOAP-ENV:Body></SOAP-ENV:Envelope>");
 		operation.setNamespaceURI("http://cadena.webservices.test.com");
@@ -263,65 +275,50 @@ public class Cliente {
 	private static void test1() throws WSDLException{
 		// for testing purposes only
 
+		Pais pais = new Pais();
+		pais.setId(3);
+		pais.setCodigo("504");
+		pais.setNombre("Honduras");
+		pais.setEstado(1);
+		
+		//createData(pais);
+		
+		Agregadores agregador = new Agregadores();
+		agregador.setEstado(1);
+		agregador.setPais(pais);
+		agregador.setId(4);
+		agregador.setNombre_agregador("AGREGADOR 4 FROM HIBERNATE");
+		
+		//createData(agregador);
+		
 		System.out.println("Starting the WSDL Parse..");
 		Cliente wsdlparser = new Cliente();
 		// http://www.xignite.com/xquotes.asmx?WSDL
-		List<?> services = wsdlparser.getServicesInfo("http://192.168.0.100:8090/axis2/services/Servicio_1?wsdl");
-
-		// process objects built from the binding information
-		Iterator<?> servicesIter = services.iterator();
-		while (servicesIter.hasNext()) {
-			ServiceInfo service = (ServiceInfo) servicesIter.next();
-			System.out.println("Service Name: " + service.getName());
+		
+		agregador = wsdlparser.getServicesInfo("http://192.168.0.100:8090/axis2/services/Servicio_1?wsdl", agregador);
+		
+		for (Metodos operation : agregador.getMetodos()) {
+			System.out.println("Operation Name: " 		+ operation.toString());
+			System.out.println("getInputMessageName: "	+ operation.getInputMessageName());
+			System.out.println("getInputMessageText: "	+ operation.getInputMessageText());
+			System.out.println("getNamespaceURI: "		+ operation.getNamespaceURI());
+			System.out.println("getSoapActionURI: "		+ operation.getSoapActionURI());
+			System.out.println("getStyle: " 			+ operation.getStyle());
+			System.out.println("getTargetMethodName: "	+ operation.getTargetMethodName());
+			System.out.println("getTargetObjectURI(): "	+ operation.getTargetObjectURI());
+			System.out.println("getTargetURL(): "		+ operation.getTargetURL());
 			System.out.println();
-
-			Iterator<?> operationsIter = service.getOperations();
-			while (operationsIter.hasNext()) {
-				OperationInfo operation = (OperationInfo) operationsIter.next();
-				
-				System.out.println("Invoking the following:");
-				System.out.println("Service Name: "+service.getName());
-				System.out.println("Operation Name: "+operation.toString());
-				System.out.println("Target URL: "+operation.getTargetURL());
-				System.out.println("SOAPAction: "+operation.getSoapActionURI());
-				System.out.println("SOAP request: \n"+operation.getInputMessageText());
-				System.out.println();
-				System.out.println("SOAP response: \n"+invokeOperation(operation));
-				
-				/*System.out.println("Operation Name: " 		+ operation.toString());
-				System.out.println("getInputMessageName: "	+ operation.getInputMessageName());
-				System.out.println("getInputMessageText: "	+ operation.getInputMessageText());
-				System.out.println("getNamespaceURI: "		+ operation.getNamespaceURI());
-				System.out.println("getSoapActionURI: "		+ operation.getSoapActionURI());
-				System.out.println("getStyle: " 			+ operation.getStyle());
-				System.out.println("getTargetMethodName: "	+ operation.getTargetMethodName());
-				System.out.println("getTargetObjectURI(): "	+ operation.getTargetObjectURI());
-				System.out.println("getTargetURL(): "		+ operation.getTargetURL());*/
-				System.out.println();
-
+			for (Parametros param : operation.getParametros()) {
+				System.out.println(param.getNombre());
+				System.out.println(param.getTipo());
 			}
+			
+			System.out.println("SOAP response: \n"+invokeOperation(operation));
+			
+			
 		}
-
-			/*	//System.out.println();
-				// get the first operation and invoke it
-				Iterator<?> servicesIter2 = services.iterator();
-				if (servicesIter2.hasNext())
-				{
-					ServiceInfo service = (ServiceInfo)servicesIter2.next();
-					Iterator<?> operationsIter = service.getOperations();
-					if (operationsIter.hasNext())
-					{
-						OperationInfo operation = (OperationInfo)operationsIter.next();
-						System.out.println("Invoking the following:");
-						System.out.println("Service Name: "+service.getName());
-						System.out.println("Operation Name: "+operation.toString());
-						System.out.println("Target URL: "+operation.getTargetURL());
-						System.out.println("SOAPAction: "+operation.getSoapActionURI());
-						System.out.println("SOAP request: \n"+operation.getInputMessageText());
-						System.out.println();
-						System.out.println("SOAP response: \n"+invokeOperation(operation));
-					}
-				}*/
+		
+		SessionFactoryUtil.closeSession();
 	}
 	
 	/**
@@ -334,15 +331,10 @@ public class Cliente {
 	 * @return A List of ServiceInfo objects populated for each service defined
 	 *         in the WSDL file.
 	 */
-	@SuppressWarnings("unchecked")
-	public List<?> getServicesInfo(String wsdlURI) throws WSDLException {
-
-		try {
-
-			// the list of ServiceInfo that will be returned
-			@SuppressWarnings({ "rawtypes" })
-			List serviceList = Collections.synchronizedList(new ArrayList());
-
+	public Agregadores getServicesInfo(String wsdlURI, Agregadores agregador) throws WSDLException 
+	{
+		try 
+		{
 			// create the WSDL Reader object
 			WSDLReader reader = wsdlFactory.newWSDLReader();
 
@@ -357,20 +349,18 @@ public class Cliente {
 			@SuppressWarnings("rawtypes")
 			Map services = def.getServices();
 
-			if (services != null) {
+			if (services != null) 
+			{
 				// create a ServiceInfo for each service defined
 				@SuppressWarnings("rawtypes")
 				Iterator svcIter = services.values().iterator();
-
-				while (svcIter.hasNext()) {
-					ServiceInfo serviceInfo = new ServiceInfo();
-
-					// populate the new component from the WSDL Definition read
-					populateInfo(serviceInfo, (Service) svcIter.next());
-
+				while (svcIter.hasNext()) 
+				{
 					// add the new component to the List to be returned
-					serviceList.add(serviceInfo);
+					// populate the new component from the WSDL Definition read
+					agregador = populateInfo((Service) svcIter.next(), agregador);					
 				}
+				
 			}
 
 			//clean of memory JVM object instanced
@@ -379,17 +369,19 @@ public class Cliente {
 			services = null;
 			
 			// return the List of services we created
-			return serviceList;
+			return agregador;
 
-		} catch (WSDLException e) {
+		} 
+		catch (WSDLException e) 
+		{
 			// should really log this here
-			final String errMsg = "The following error occurred obtaining the service "
-					+ "information from the WSDL: " + e.getMessage();
+			final String errMsg = "The following error occurred obtaining the service information from the WSDL: " + e.getMessage();
 			System.out.println(errMsg);
 			throw e;
-		} catch (Exception e) {
-			final String errMsg = "The following error occurred obtaining the service "
-					+ "information from the WSDL: " + e.getMessage();
+		} 
+		catch (Exception e) 
+		{
+			final String errMsg = "The following error occurred obtaining the service information from the WSDL: " + e.getMessage();
 			System.out.println(errMsg);
 			throw new WSDLException(errMsg, e);
 		}
@@ -404,13 +396,14 @@ public class Cliente {
 	 * @return A castor schema is returned if the WSDL definition contains a
 	 *         types element.
 	 */
-	private Schema createSchemaFromTypes(Definition wsdlDefinition) {
+	private Schema createSchemaFromTypes(Definition wsdlDefinition) 
+	{
 		// get the schema element from the WSDL definition
 		Element schemaElement = null;
 
-		if (wsdlDefinition.getTypes() != null) {
-			ExtensibilityElement schemaExtElem = findExtensibilityElement(
-					wsdlDefinition.getTypes().getExtensibilityElements(),"schema");
+		if (wsdlDefinition.getTypes() != null) 
+		{
+			ExtensibilityElement schemaExtElem = findExtensibilityElement(wsdlDefinition.getTypes().getExtensibilityElements(),"schema");
 
 			if (schemaExtElem != null && schemaExtElem instanceof UnknownExtensibilityElement)
 				schemaElement = ((UnknownExtensibilityElement) schemaExtElem).getElement();
@@ -420,17 +413,21 @@ public class Cliente {
 		}
 		
 		// no schema to read
-		if (schemaElement == null)
+		if (schemaElement == null){
 			return null;
+		}
 		
 		Map<?, ?> namespaces = wsdlDefinition.getNamespaces();
-		if (namespaces != null && !namespaces.isEmpty()) {
+		if (namespaces != null && !namespaces.isEmpty()) 
+		{
 			Iterator<?> nsIter = namespaces.keySet().iterator();
-			while (nsIter.hasNext()) {
+			while (nsIter.hasNext()) 
+			{
 				String nsPrefix = (String) nsIter.next();
 				String nsURI = (String) namespaces.get(nsPrefix);
 
-				if (nsPrefix != null && nsPrefix.length() > 0) {
+				if (nsPrefix != null && nsPrefix.length() > 0) 
+				{
 					// add the namespaces from the definition element to teh schema element
 					schemaElement.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:" + nsPrefix, nsURI);
 				}
@@ -440,16 +437,21 @@ public class Cliente {
 		// convert it into a Castor schema instance
 		Schema schema = null;
 
-		try {
+		try 
+		{
 			schema = XMLSupport.convertElementToSchema((Element)schemaElement);
 			schemaTargetNamespace = schema.getTargetNamespace();
-		}catch (Exception e) {
+		}
+		catch (Exception e) 
+		{
 			System.out.println("The following error occurred obtaining the schema from WSDL: " + e.getMessage());
 			e.printStackTrace();
 		}
+		
 		return schema;
 	}
 
+	
 	/**
 	 * Populates a ServiceInfo instance from the specified Service definiition
 	 * 
@@ -462,21 +464,15 @@ public class Cliente {
 	 *         parameter
 	 * @throws com.cladonia.xml.webservice.wsdl.WSDLException
 	 */
-	private ServiceInfo populateInfo(ServiceInfo component, Service service)
-			throws WSDLException {
-		try {
-
+	private Agregadores populateInfo(Service service, Agregadores agregador) throws WSDLException 
+	{
+		try 
+		{
 			// get the qualified service name information
 			QName qName = service.getQName();
 
 			// get the service's namespace URI
 			String namespace = qName.getNamespaceURI();
-
-			// use the local part of the qualified name for the component's name
-			String name = qName.getLocalPart();
-
-			// set the name
-			component.setName(name);
 
 			// get the defined ports for this service
 			Map<?, ?> ports = service.getPorts();
@@ -485,41 +481,26 @@ public class Cliente {
 			// messages defined
 			Iterator<?> portIter = ports.values().iterator();
 
-			while (portIter.hasNext()) {
+			
+			while (portIter.hasNext()) 
+			{
 				// get the next defined port
 				Port port = (Port) portIter.next();
 
-				// get the Port's Binding
-				Binding binding = port.getBinding();
-
 				// now we will create operations from the Binding information
-				List<?> operations = buildOperations(binding, namespace);
-
-				// process objects built from the binding information
-				Iterator<?> operIter = operations.iterator();
-
-				while (operIter.hasNext()) {
-					OperationInfo operation = (OperationInfo) operIter.next();
-
-					// find the SOAP target URL
-					ExtensibilityElement addrElem = findExtensibilityElement(port.getExtensibilityElements(), "address");
-
-					if (addrElem != null && addrElem instanceof SOAPAddress) {
-						// set the SOAP target URL
-						SOAPAddress soapAddr = (SOAPAddress) addrElem;
-						operation.setTargetURL(soapAddr.getLocationURI());
-					}
-
-					// add the operation info to the component
-					component.addOperation(operation);
-				}
+				agregador = buildOperations(port, namespace, agregador);
 			}
 
-			return component;
-
-		} catch (WSDLException e) {
+			
+			
+			return agregador;
+		} 
+		catch (WSDLException e) 
+		{
 			throw e;
-		} catch (Exception e) {
+		} 
+		catch (Exception e) 
+		{
 			// should log this here
 			throw new com.cladonia.xml.webservice.wsdl.WSDLException(e);
 		}
@@ -537,49 +518,59 @@ public class Cliente {
 	 * @return A List of built and populated OperationInfos is returned for each
 	 *         Binding Operation
 	 */
-	@SuppressWarnings("unchecked")
-	private List<?> buildOperations(Binding binding, String namespace)
-			throws WSDLException {
-		try {
-			// create the array of info objects to be returned
-			@SuppressWarnings("rawtypes")
-			List operationInfos = new ArrayList();
-
+	private Agregadores buildOperations(Port port, String namespace, Agregadores agregador) throws WSDLException 
+	{
+		try 
+		{
+			// get the Port's Binding
+			Binding binding = port.getBinding();
+			
+			// create the array of info objects to be add to Agregadores
+			List<Metodos> metodos = new ArrayList<Metodos>();
+			//agregador.setMetodos(new HashSet<Metodos>(metodos));
+			
 			// get the list of Binding Operations from the passed binding
 			List<?> operations = binding.getBindingOperations();
 
-			if (operations != null && !operations.isEmpty()) {
+			if (operations != null && !operations.isEmpty()) 
+			{
 				// determine encoding (rpc or document)
-				ExtensibilityElement soapBindingElem = findExtensibilityElement(
-						binding.getExtensibilityElements(), "binding");
+				ExtensibilityElement soapBindingElem = findExtensibilityElement(binding.getExtensibilityElements(), "binding");
 
 				// set "document" as the default
 				String style = "document";
 
-				if (soapBindingElem != null	&& soapBindingElem instanceof SOAPBinding) {
+				if (soapBindingElem != null	&& soapBindingElem instanceof SOAPBinding) 
+				{
 					SOAPBinding soapBinding = (SOAPBinding) soapBindingElem;
 					style = soapBinding.getStyle();
 				}
 
 				// for each binding operation, create a new OperationInfo
 				Iterator<?> opIter = operations.iterator();
-				while (opIter.hasNext()) {
+				int id = 8;
+				while (opIter.hasNext()) 
+				{
 					// for each operation we need a new clean dom
 					createEmptySoapMessage();
 
 					BindingOperation oper = (BindingOperation) opIter.next();
 
 					// only required to support soap:operation bindings
-					ExtensibilityElement operElem = findExtensibilityElement(
-							oper.getExtensibilityElements(), "operation");
+					ExtensibilityElement operElem = findExtensibilityElement(oper.getExtensibilityElements(), "operation");
 
-					if (operElem != null && operElem instanceof SOAPOperation) {
+					if (operElem != null && operElem instanceof SOAPOperation) 
+					{
 						// create a new operation info
-						OperationInfo operationInfo = new OperationInfo(style);
+						//OperationInfo operationInfo = new OperationInfo(style);
+						Metodos operationInfo = new Metodos();
+						operationInfo.setStyle(style);
+						operationInfo.setId(id);
 
 						// style maybe overridden in operation
 						String operStyle = ((SOAPOperation) operElem).getStyle();
-						if ((operStyle != null) && (!operStyle.equals(""))) {
+						if ((operStyle != null) && (!operStyle.equals(""))) 
+						{
 							operationInfo.setStyle(operStyle);
 						}
 
@@ -589,26 +580,48 @@ public class Cliente {
 						// populate it from the Binding Operation
 						buildOperation(operationInfo, oper);
 
+						// find the SOAP target URL
+						ExtensibilityElement addrElem = findExtensibilityElement(port.getExtensibilityElements(), "address");
+
+						if (addrElem != null && addrElem instanceof SOAPAddress) 
+						{
+							// set the SOAP target URL
+							SOAPAddress soapAddr = (SOAPAddress) addrElem;
+							operationInfo.setTargetURL(soapAddr.getLocationURI());
+						}
+						
 						// add to the return list
-						operationInfos.add(operationInfo);
+						//component.addOperation(operationInfo);
+						metodos.add(operationInfo);
 					}
 				}
 			}
 
-			return operationInfos;
+			// llenamos la lista de metodos que tienen este agregador
+			agregador.getMetodos().addAll(metodos);
+			
+			return agregador;
 
-		} catch (WSDLException e) {
+		} 
+		catch (WSDLException e) 
+		{
 			throw e;
-		} catch (Exception e) {
+		} 
+		catch (Exception e) 
+		{
 			// should log this here
 			throw new WSDLException(e);
 		}
 	}
+	
 		
 	/**
-	 * Creates an empty SOAP message.
+	 * Crear un mensaje SOAP vacio.
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores return void
 	 */
-	private void createEmptySoapMessage() throws Exception {
+	private void createEmptySoapMessage() throws Exception 
+	{
 		// create the dom
 		javax.xml.parsers.DocumentBuilderFactory dbf = javax.xml.parsers.DocumentBuilderFactory.newInstance();
 		dbf.setNamespaceAware(true);
@@ -649,20 +662,22 @@ public class Cliente {
 		document.appendChild(envelope);
 	}
 	
+	
 	/**
 	 * Populates an OperationInfo from the specified Binding Operation
 	 * 
+	 * @author Edwin Mejia - Avantia Consultores
 	 * @param operationInfo
-	 *            The component to populate
+	 *            The component Metodos
 	 * @param bindingOper
 	 *            A Binding Operation to define the OperationInfo from
 	 * 
 	 * @return The populated OperationInfo object is returned.
 	 */
-	private OperationInfo buildOperation(OperationInfo operationInfo,
-			BindingOperation bindingOper) throws WSDLException {
-		try {
-
+	private Metodos buildOperation(Metodos operationInfo, BindingOperation bindingOper) throws WSDLException 
+	{
+		try 
+		{
 			// get the operation
 			Operation oper = bindingOper.getOperation();
 
@@ -673,7 +688,8 @@ public class Cliente {
 			ExtensibilityElement operElem = findExtensibilityElement(
 					bindingOper.getExtensibilityElements(), "operation");
 
-			if (operElem != null && operElem instanceof SOAPOperation) {
+			if (operElem != null && operElem instanceof SOAPOperation) 
+			{
 				SOAPOperation soapOperation = (SOAPOperation) operElem;
 				operationInfo.setSoapActionURI(soapOperation.getSoapActionURI());
 			}
@@ -688,45 +704,50 @@ public class Cliente {
 			// TO DO Build the SOAP Header (not really needed for SOAP testing)
 
 			// get the SOAP Body part (of the operation inside the binding)
-			ExtensibilityElement bodyElem = findExtensibilityElement(
-					bindingInput.getExtensibilityElements(), "body");
+			ExtensibilityElement bodyElem = findExtensibilityElement(bindingInput.getExtensibilityElements(), "body");
 
-			if (bodyElem != null && bodyElem instanceof SOAPBody) {
+			if (bodyElem != null && bodyElem instanceof SOAPBody) 
+			{
 				SOAPBody soapBody = (SOAPBody) bodyElem;
 
-				// the SOAP Body contains the target object's namespace URI (may
-				// or may not be present)
+				// the SOAP Body contains the target object's namespace URI (may or may not be present)
 				operationInfo.setTargetObjectURI(soapBody.getNamespaceURI());
 			}
 
 			// get the Operation's Input definition
 			Input inDef = oper.getInput();
 
-			if (inDef != null) {
+			if (inDef != null) 
+			{
 				// build input parameters
 				Message inMsg = inDef.getMessage();
 
-				if (inMsg != null) {
-					// set the name of the operation's input message (good to
-					// know for debugging)
+				if (inMsg != null) 
+				{
+					// set the name of the operation's input message (good to know for debugging)
 					operationInfo.setInputMessageName(inMsg.getQName().getLocalPart());
 
 					// set the body of the operation's input message
-					operationInfo.setInputMessageText(buildMessageText(operationInfo, inMsg));
+					operationInfo = buildMessageText(operationInfo, inMsg);
 				}
 			}
 
 			// finished, return the populated object
 			return operationInfo;
 
-		} catch (WSDLException e) {
+		} 
+		catch (WSDLException e) 
+		{
 			// should log\trace this here
 			throw e;
-		} catch (Exception e) {
+		} 
+		catch (Exception e) 
+		{
 			// should log\trace this here
 			throw new WSDLException(e);
 		}
 	}
+	
 	
 	/**
 	 * Returns the desired ExtensibilityElement if found in the List
@@ -738,18 +759,23 @@ public class Cliente {
 	 * 
 	 * @return Returns the first matching element of type found in the list
 	 */
-	private static ExtensibilityElement findExtensibilityElement(List<?> extensibilityElements, String elementType) {
-		if (extensibilityElements != null) {
+	private static ExtensibilityElement findExtensibilityElement(List<?> extensibilityElements, String elementType) 
+	{
+		if (extensibilityElements != null) 
+		{
 			Iterator<?> iter = extensibilityElements.iterator();
-			while (iter.hasNext()) {
+			while (iter.hasNext()) 
+			{
 				ExtensibilityElement element = (ExtensibilityElement) iter.next();
-				if (element.getElementType().getLocalPart().equalsIgnoreCase(elementType)) {
+				if (element.getElementType().getLocalPart().equalsIgnoreCase(elementType)) 
+				{
 					return element;
 				}
 			}
 		}
 		return null;
 	}
+	
 
 	/**
 	 * Builds the SOAP Body content given a SOAP Message definition (from WSDL)
@@ -762,25 +788,28 @@ public class Cliente {
 	 * 
 	 * @return The SOAP Envelope as a String
 	 */
-	private String buildMessageText(OperationInfo operationInfo, Message msg)
-			throws WSDLException {
-		try {
-
+	private Metodos buildMessageText(Metodos operationInfo, Message msg) throws WSDLException 
+	{
+		try 
+		{
+			//List to insert data in operationInfo
+			List<Parametros> parametros = new ArrayList<Parametros>();
+			
 			// the root element to add all the message content
 			Element rootElem = null;
 			String operationStyle = operationInfo.getStyle();
 
-			if (operationStyle.equalsIgnoreCase("rpc")) {
+			if (operationStyle.equalsIgnoreCase("rpc")) 
+			{
 				// if "rpc" style then add wrapper element with the name of the operation
-				if ((operationInfo.getTargetObjectURI() != null)
-						&& (!operationInfo.getTargetObjectURI().equals(""))) {
+				if ((operationInfo.getTargetObjectURI() != null) && (!operationInfo.getTargetObjectURI().equals(""))) 
+				{
 					// create the element with the object namespace
-					rootElem = document.createElementNS(
-							operationInfo.getTargetObjectURI(), "xngr:"
-									+ operationInfo.getTargetMethodName());
-					rootElem.setAttributeNS("http://www.w3.org/2000/xmlns/",
-							"xmlns:xngr", operationInfo.getTargetObjectURI());
-				} else {
+					rootElem = document.createElementNS(operationInfo.getTargetObjectURI(), "xngr:"	+ operationInfo.getTargetMethodName());
+					rootElem.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xngr", operationInfo.getTargetObjectURI());				
+				} 
+				else 
+				{
 					// create the element with no namespace
 					rootElem = document.createElementNS(null, operationInfo.getTargetMethodName());
 				}
@@ -795,31 +824,41 @@ public class Cliente {
 			// process each part
 			Iterator<?> iter = msgParts.iterator();
 
-			while (iter.hasNext()) {
+			while (iter.hasNext()) 
+			{
 				// get each part
 				Part part = (Part) iter.next();
 
 				// add content for each message part
 				String partName = part.getName();
 
-				if (partName != null) {
+				if (partName != null) 
+				{
 					// is it an element or a type ?
-					if (part.getElementName() != null) {
+					if (part.getElementName() != null) 
+					{
 						// determine if the element is complex or simple
 						XMLType xmlType = getXMLType(part);
-
-						if (xmlType != null && xmlType.isComplexType()) {
+						
+						if (xmlType != null && xmlType.isComplexType()) 
+						{
 							// build the element that will be added to the message
 							Element partElem = document.createElementNS(null, part.getElementName().getLocalPart());
 
 							// build the complex message structure
-							buildComplexPart((ComplexType) xmlType, partElem);
+							operationInfo = buildComplexPart((ComplexType) xmlType, partElem, operationInfo);
 
 							// add this message part
 							rootElem.appendChild(partElem);
-						} else if (xmlType != null && xmlType.isSimpleType()) {
-							// build the simple element that will be added to
-							// the message
+						} 
+						else if (xmlType != null && xmlType.isSimpleType()) 
+						{
+							Parametros parametro = new Parametros();
+							parametro.setNombre(partName);
+							parametro.setTipo(xmlType.getName());
+							parametros.add(parametro);
+							
+							// build the simple element that will be added to the message
 							Element partElem = document.createElementNS(null, partName);
 							partElem.appendChild(document.createTextNode("_*".concat(partName).concat("_*")));
 
@@ -827,27 +866,38 @@ public class Cliente {
 							rootElem.appendChild(partElem);
 
 						}
-					} else {
+					} 
+					else 
+					{
 						// of type "type"
 						XMLType xmlType = getXMLType(part);
-
+						
 						// is it comlex or simple type
-						if (xmlType != null && xmlType.isComplexType()) {
-							if (operationStyle.equalsIgnoreCase("rpc")) {
-								// create an element with the part name (only
-								// required for RPC)
+						if (xmlType != null && xmlType.isComplexType()) 
+						{
+							if (operationStyle.equalsIgnoreCase("rpc")) 
+							{
+								// create an element with the part name (only required for RPC)
 								Element partElem = document.createElementNS(null, partName);
 
 								// build the complex message structure
-								buildComplexPart((ComplexType) xmlType,partElem);
+								operationInfo = buildComplexPart((ComplexType) xmlType, partElem, operationInfo);
 
 								// add this message part
 								rootElem.appendChild(partElem);
-							} else {
+							} 
+							else 
+							{
 								// build the complex message structure
-								buildComplexPart((ComplexType) xmlType,rootElem);
+								operationInfo = buildComplexPart((ComplexType) xmlType, rootElem, operationInfo);
 							}
-						} else if (xmlType != null && xmlType.isSimpleType()) {
+						} 
+						else if (xmlType != null && xmlType.isSimpleType()) 
+						{
+							Parametros parametro = new Parametros();
+							parametro.setNombre(partName);
+							parametro.setTipo(xmlType.getName());
+							parametros.add(parametro);
 							// build the simple element that will be added to the message
 							Element partElem = document.createElementNS(null,partName);
 							partElem.appendChild(document.createTextNode("_*".concat(partName).concat("_*")));
@@ -859,36 +909,46 @@ public class Cliente {
 				}
 			}
 
-			if (operationStyle.equalsIgnoreCase("rpc")) {
-				// append the content to the SOAP Body element
+			// append the content to the SOAP Body element
+			if (operationStyle.equalsIgnoreCase("rpc"))	
+			{
 				body.appendChild(rootElem);
 			}
 
-			// add the schema targetnamespace if "document" style to the SOAP
-			// body
-			if (operationStyle.equalsIgnoreCase("document")) {
-				if (schemaTargetNamespace != null) {
+			// add the schema targetnamespace if "document" style to the SOAP body
+			if (operationStyle.equalsIgnoreCase("document")) 
+			{
+				if (schemaTargetNamespace != null) 
+				{
 					// add the schema targetnameapace to the soap body
-					body.setAttributeNS("http://www.w3.org/2000/xmlns/",
-							"xmlns", schemaTargetNamespace);
-				} else if ((operationInfo.getNamespaceURI() != null)
-						&& (!operationInfo.getNamespaceURI().equals(""))) {
-					// if the schema targetnamespace isn't present then add the
-					// service namespace
-					body.setAttributeNS("http://www.w3.org/2000/xmlns/",
-							"xmlns", operationInfo.getNamespaceURI());
-				} else {
+					body.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns", schemaTargetNamespace);
+				} 
+				else if ((operationInfo.getNamespaceURI() != null) && (!operationInfo.getNamespaceURI().equals(""))) 
+				{
+					// if the schema targetnamespace isn't present then add the service namespace
+					body.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns", operationInfo.getNamespaceURI());
+				} 
+				else 
+				{
 					// no namespaces to add
 				}
 			}
-
+			
+			if(operationInfo.getParametros().size()<=0)
+				operationInfo.setParametros(new HashSet<Parametros>(parametros));
+			
 			// return the serialised dom
-			return XMLSupport.prettySerialise(document);
-
-		} catch (WSDLException e) {
+			operationInfo.setInputMessageText(XMLSupport.prettySerialise(document));
+			
+			return operationInfo;
+		} 
+		catch (WSDLException e) 
+		{
 			// should log\trace this here
 			throw e;
-		} catch (Exception e) {
+		} 
+		catch (Exception e) 
+		{
 			// should log\trace this here
 			throw new WSDLException(e);
 		}
@@ -897,92 +957,156 @@ public class Cliente {
 	/**
 	 * Gets an XML Type from a SOAP Message Part read from WSDL
 	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * 
 	 * @param part
 	 *            The SOAP Message part
 	 * 
 	 * @return The corresponding XML Type is returned.
 	 */
-	protected XMLType getXMLType(Part part) {
+	protected XMLType getXMLType(Part part) 
+	{
+		
 		// no defined types, Nothing to do
-		if (wsdlTypes == null)	return null;
+		if (wsdlTypes == null)
+		{
+			return null;
+		}
 		
 		// find the XML type
 		XMLType xmlType = null;
 
 		// first see if there is a defined element
-		if (part.getElementName() != null) {
+		if (part.getElementName() != null) 
+		{
 			// get the element name
 			String elemName = part.getElementName().getLocalPart();
 
 			// find the element declaration
 			ElementDecl elemDecl = wsdlTypes.getElementDecl(elemName);
 
-			if (elemDecl != null) {
+			if (elemDecl != null) 
+			{
 				// from the element declaration get the XML type
 				xmlType = elemDecl.getType();
 			}
-		} else if (part.getTypeName() != null) {
+		} 
+		else if (part.getTypeName() != null) 
+		{
 			// get the type name
 			String typeName = part.getTypeName().getLocalPart();
 
 			// get the XML type
 			xmlType = wsdlTypes.getType(typeName);
 		}
+		
 		return xmlType;
 	}
 	
 	/**
 	 * Populate an element using the complex XML type passed in
 	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * 
 	 * @param complexType
 	 *            The complex XML type to build the element for
 	 * @param partElem
 	 *            The element to build content for
 	 */
-	protected void buildComplexPart(ComplexType complexType, Element partElem) {
-
-		XMLType baseType = complexType.getBaseType();
-		if (baseType != null && baseType.isComplexType()) {
-			buildComplexPart((ComplexType) baseType, partElem);
-		}
-
-		// find the group
-		Enumeration<?> particleEnum = complexType.enumerate();
-		Group group = null;
-
-		while (particleEnum.hasMoreElements()) {
-			Particle particle = (Particle) particleEnum.nextElement();
-
-			if (particle instanceof Group) {
-				group = (Group) particle;
-				break;
+	protected Metodos buildComplexPart(ComplexType complexType, Element partElem, Metodos operationInfo) 
+	{
+		try {
+			List<Parametros> parametros = new ArrayList<Parametros>();
+			XMLType baseType = complexType.getBaseType();
+			if (baseType != null && baseType.isComplexType()) 
+			{
+				operationInfo = buildComplexPart((ComplexType) baseType, partElem, operationInfo);
 			}
+
+			// find the group
+			Enumeration<?> particleEnum = complexType.enumerate();
+			Group group = null;
+
+			while (particleEnum.hasMoreElements()) 
+			{
+				Particle particle = (Particle) particleEnum.nextElement();
+
+				if (particle instanceof Group) 
+				{
+					group = (Group) particle;
+					break;
+				}
+			}
+
+			if (group != null) 
+			{
+				Enumeration<?> groupEnum = group.enumerate();
+
+				while (groupEnum.hasMoreElements()) 
+				{
+					Structure item = (Structure) groupEnum.nextElement();
+
+					if (item.getStructureType() == Structure.ELEMENT) 
+					{
+						ElementDecl elementDecl = (ElementDecl) item;
+
+						// build the element that will be added to the message
+						Element childElem = document.createElementNS(null,elementDecl.getName());
+
+						XMLType xmlType = elementDecl.getType();
+
+						if (xmlType != null && xmlType.isComplexType()) 
+						{
+							// recurse
+							operationInfo = buildComplexPart((ComplexType) xmlType, childElem, operationInfo);
+						} 
+						else if (xmlType != null && xmlType.isSimpleType()) 
+						{
+							Parametros parametro = new Parametros();
+							parametro.setNombre(elementDecl.getName());
+							parametro.setTipo(xmlType.getName());
+							parametros.add(parametro);
+							// add some default content as just a place holder
+							childElem.appendChild(document.createTextNode("_*".concat(elementDecl.getName()).concat("_*")));
+							
+						}
+						
+						partElem.appendChild(childElem);
+						
+					}
+				}
+			}
+			
+			operationInfo.setParametros(new HashSet<Parametros>(parametros));
+			
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 
-		if (group != null) {
-			Enumeration<?> groupEnum = group.enumerate();
-
-			while (groupEnum.hasMoreElements()) {
-				Structure item = (Structure) groupEnum.nextElement();
-
-				if (item.getStructureType() == Structure.ELEMENT) {
-					ElementDecl elementDecl = (ElementDecl) item;
-
-					// build the element that will be added to the message
-					Element childElem = document.createElementNS(null,elementDecl.getName());
-
-					XMLType xmlType = elementDecl.getType();
-
-					if (xmlType != null && xmlType.isComplexType()) {
-						// recurse
-						buildComplexPart((ComplexType) xmlType, childElem);
-					} else if (xmlType != null && xmlType.isSimpleType()) {
-						// add some default content as just a place holder
-						childElem.appendChild(document.createTextNode("_*".concat(elementDecl.getName()).concat("_*")));
-					}
-					partElem.appendChild(childElem);
-					
+		
+		return operationInfo;
+	}
+	
+	
+	@SuppressWarnings("unused")
+	private static void createData(Object obj) {
+		Session session = SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession();
+		try {
+			session.beginTransaction();
+			session.save(obj);
+			session.getTransaction().commit();
+			//session.close();
+		} catch (RuntimeException e) {
+			if (session.getTransaction() != null
+					&& session.getTransaction().isActive()) {
+				try {
+					// Second try catch as the rollback could fail as well
+					session.getTransaction().rollback();
+				} catch (HibernateException e1) {
+					logger.debug("Error rolling back transaction");
 				}
+				// throw again the first exception
+				throw e;
 			}
 		}
 	}

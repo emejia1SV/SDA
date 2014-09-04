@@ -11,7 +11,6 @@ import com.cladonia.xml.webservice.wsdl.WSDLException;
 import sv.avantia.depurador.agregadores.entidades.Agregadores;
 import sv.avantia.depurador.agregadores.entidades.Metodos;
 import sv.avantia.depurador.agregadores.entidades.Parametros;
-import sv.avantia.depurador.agregadores.entidades.Servicios;
 import sv.avantia.depurador.agregadores.ws.cliente.Cliente;
 
 public class ConsultaAgregadorPorHilo extends Thread {
@@ -29,39 +28,34 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	}
 	
 	private void procesarServiciosWeb(){
-		if (getAgregador() != null) {				
-			if(getAgregador().getServicios()!=null){
-				for (Servicios servicio : getAgregador().getServicios()) {
-					
-					
-					if(servicio.getMetodos()!=null){
-						for (Metodos metodo : servicio.getMetodos()) {
-							if(metodo.getParametros()!=null){
-								for (Parametros parametro : metodo.getParametros()) {
-									
-									
-									/*if (parametro.getInsumo().equals(resultSet0.getString("INSUMO"))) {
-										metodo.getOperacionSRV().setInputMessageText(
-												metodo.getOperacionSRV().getInputMessageText().replace(("_*"+parametro.getNombre()+"_*"), "" + Class.forName(parametro.getTipo()).getConstructor(String.class).newInstance(resultSet0.getString(parametro.getColumna().toUpperCase())))
-												);
-									}else if (parametro.getInsumo().equals(resultSet1.getString("INSUMO"))) {
-										metodo.getOperacionSRV().setInputMessageText(
-												metodo.getOperacionSRV().getInputMessageText().replace(("_*"+parametro.getNombre()+"_*"), "" + Class.forName(parametro.getTipo()).getConstructor(String.class).newInstance(resultSet1.getString(parametro.getColumna().toUpperCase())))
-												);
-									}else if (parametro.getInsumo().equals(resultSet2.getString("INSUMO"))) {
-										metodo.getOperacionSRV().setInputMessageText(
-												metodo.getOperacionSRV().getInputMessageText().replace(("_*"+parametro.getNombre()+"_*"), "" + Class.forName(parametro.getTipo()).getConstructor(String.class).newInstance(resultSet2.getString(parametro.getColumna().toUpperCase())))
-												);
-									}*/	
-								}
-							}
-							//obtenerRespuesta(Cliente.invokeOperation(metodo.getOperacionSRV()));
-							System.out.println();
-								}
-								
-							}
+		if (getAgregador() != null) {
+
+			if (getAgregador().getMetodos() != null) {
+				for (Metodos metodo : getAgregador().getMetodos()) {
+					if (metodo.getParametros() != null) {
+						for (Parametros parametro : metodo.getParametros()) {
+							System.out.println(parametro.getNombre());
+							/*if (parametro.getInsumo().equals(resultSet0.getString("INSUMO"))) {
+							metodo.getOperacionSRV().setInputMessageText(
+									metodo.getOperacionSRV().getInputMessageText().replace(("_*"+parametro.getNombre()+"_*"), "" + Class.forName(parametro.getTipo()).getConstructor(String.class).newInstance(resultSet0.getString(parametro.getColumna().toUpperCase())))
+									);
+						}else if (parametro.getInsumo().equals(resultSet1.getString("INSUMO"))) {
+							metodo.getOperacionSRV().setInputMessageText(
+									metodo.getOperacionSRV().getInputMessageText().replace(("_*"+parametro.getNombre()+"_*"), "" + Class.forName(parametro.getTipo()).getConstructor(String.class).newInstance(resultSet1.getString(parametro.getColumna().toUpperCase())))
+									);
+						}else if (parametro.getInsumo().equals(resultSet2.getString("INSUMO"))) {
+							metodo.getOperacionSRV().setInputMessageText(
+									metodo.getOperacionSRV().getInputMessageText().replace(("_*"+parametro.getNombre()+"_*"), "" + Class.forName(parametro.getTipo()).getConstructor(String.class).newInstance(resultSet2.getString(parametro.getColumna().toUpperCase())))
+									);
+						}*/	
 						}
 					}
+					// obtenerRespuesta(Cliente.invokeOperation(metodo.getOperacionSRV()));
+					System.out.println();
+				}
+
+			}
+
 		}
 	}
 
@@ -70,12 +64,14 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 * @author Edwin Mejia - Avantia Consultores
 	 * @throws WSDLException 
 	 * */
+	@SuppressWarnings("unused")
 	private void obtenerServicios(String wsdl) throws WSDLException{
 		Cliente wsdlparser = new Cliente();
 		// http://www.xignite.com/xquotes.asmx?WSDL
-		List<?> services = wsdlparser.getServicesInfo(wsdl);
+		List<?> services = null;//wsdlparser.getServicesInfo(wsdl, null);
 
 		// process objects built from the binding information
+		@SuppressWarnings("null")
 		Iterator<?> servicesIter = services.iterator();
 		while (servicesIter.hasNext()) {
 			ServiceInfo service = (ServiceInfo) servicesIter.next();
@@ -93,7 +89,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 				System.out.println("SOAPAction: "+operation.getSoapActionURI());
 				System.out.println("SOAP request: \n"+operation.getInputMessageText());
 				System.out.println();
-				System.out.println("SOAP response: \n"+wsdlparser.invokeOperation(operation));
+				//System.out.println("SOAP response: \n"+wsdlparser.invokeOperation(operation));
 				
 				/*System.out.println("Operation Name: " 		+ operation.toString());
 				System.out.println("getInputMessageName: "	+ operation.getInputMessageName());

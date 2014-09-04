@@ -12,7 +12,6 @@ import sv.avantia.depurador.agregadores.entidades.Metodos;
 import sv.avantia.depurador.agregadores.entidades.Pais;
 import sv.avantia.depurador.agregadores.entidades.Parametros;
 import sv.avantia.depurador.agregadores.entidades.Respuesta;
-import sv.avantia.depurador.agregadores.entidades.Servicios;
 import sv.avantia.depurador.agregadores.jdbc.SessionFactoryUtil;
 
 public class TestHibernate {
@@ -24,13 +23,13 @@ public class TestHibernate {
 	 * @param args
 	 */	
 	public static void main(String[] args) {
-		//test5();
-		obtenerParmetrizacion();
+		test7();
+		//obtenerParmetrizacion();
 		//testDeleteCascade();
 	}
 	
 	public static void obtenerParmetrizacion(){
-		@SuppressWarnings("unchecked")
+		@SuppressWarnings({ "unchecked", "unused" })
 		List<Pais> datos = listData("FROM AGR_PAISES");
 		SessionFactoryUtil.closeSession();
 
@@ -116,7 +115,7 @@ public class TestHibernate {
 		
 		createData(obj);
 
-		Servicios servicio = new Servicios();
+		/*Servicios servicio = new Servicios();
 		servicio.setContrasenia("uno");
 		servicio.setUsuario("Edwin");
 		servicio.setId(10);
@@ -131,7 +130,7 @@ public class TestHibernate {
 		servicio2.setWsdl_Agregador("http://192.168.0.100:8090/axis2/services/pruebaWsCadena?wsdl");
 		
 		createData(servicio);
-		createData(servicio2);
+		createData(servicio2);*/
 		
 		
 		
@@ -161,7 +160,7 @@ public class TestHibernate {
 		
 		createData(obj);
 
-		Servicios servicio = new Servicios();
+		/*Servicios servicio = new Servicios();
 		servicio.setContrasenia("uno");
 		servicio.setUsuario("Edwin");
 		servicio.setId(10);
@@ -177,7 +176,7 @@ public class TestHibernate {
 		
 		createData(servicio);
 		createData(servicio2);
-		
+		*/
 		
 		
 
@@ -206,7 +205,7 @@ public class TestHibernate {
 		
 		createData(obj);
 
-		Servicios servicio = new Servicios();
+		/*Servicios servicio = new Servicios();
 		servicio.setContrasenia("uno");
 		servicio.setUsuario("Edwin");
 		servicio.setId(10);
@@ -221,14 +220,14 @@ public class TestHibernate {
 		servicio2.setWsdl_Agregador("http://192.168.0.100:8090/axis2/services/pruebaWsCadena?wsdl");
 		
 		createData(servicio);
-		createData(servicio2);
+		createData(servicio2);*/
 		
-		Metodos metodo=new Metodos();
+		/*Metodos metodo=new Metodos();
 		metodo.setId(7);
 		metodo.setNombre("metodoPrueba");
 		metodo.setServicio(servicio);
 		
-		createData(metodo);
+		createData(metodo);*/
 
         if(SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().isOpen())
         	SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().close();
@@ -255,7 +254,7 @@ public class TestHibernate {
 		
 		createData(obj);
 
-		Servicios servicio = new Servicios();
+		/*Servicios servicio = new Servicios();
 		servicio.setContrasenia("uno");
 		servicio.setUsuario("Edwin");
 		servicio.setId(10);
@@ -281,13 +280,13 @@ public class TestHibernate {
 		
 		Parametros parametros = new Parametros();
 		parametros.setId(22);
-		parametros.setColumna("NUMERO");
-		parametros.setInsumo("insumo1");
+		//parametros.setColumna("NUMERO");
+		//parametros.setInsumo("insumo1");
 		parametros.setMetodo(metodo);
 		parametros.setNombre("movil");
 		parametros.setTipo("java.lang.String");
 		
-		createData(parametros);
+		createData(parametros);*/
 
         if(SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().isOpen())
         	SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().close();
@@ -314,7 +313,7 @@ public class TestHibernate {
 		
 		createData(obj);
 
-		Servicios servicio = new Servicios();
+		/*Servicios servicio = new Servicios();
 		servicio.setContrasenia("uno");
 		servicio.setUsuario("Edwin");
 		servicio.setId(10);
@@ -340,8 +339,8 @@ public class TestHibernate {
 		
 		Parametros parametros = new Parametros();
 		parametros.setId(22);
-		parametros.setColumna("NUMERO");
-		parametros.setInsumo("insumo1");
+		//parametros.setColumna("NUMERO");
+		//parametros.setInsumo("insumo1");
 		parametros.setMetodo(metodo);
 		parametros.setNombre("movil");
 		parametros.setTipo("java.lang.String");
@@ -351,7 +350,56 @@ public class TestHibernate {
 		Respuesta respuesta = new Respuesta();
 		respuesta.setId(1);
 		respuesta.setNombre("ni idea");
-		respuesta.setPosicion(2);
+		//respuesta.setPosicion(2);
+		respuesta.setTipo("java.lang.String");
+		respuesta.setMetodo(metodo);
+		
+		createData(respuesta);*/
+
+        if(SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().isOpen())
+        	SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().close();
+        	
+        if(!SessionFactoryUtil.getSessionAnnotationFactory().isClosed())
+        	SessionFactoryUtil.getSessionAnnotationFactory().close();
+	}
+	
+	public static void test7() {
+
+		Pais pais = new Pais();
+		pais.setId(3);
+		pais.setCodigo("504");
+		pais.setNombre("Honduras");
+		pais.setEstado(1);
+		
+		createData(pais);
+		
+		Agregadores agregador = new Agregadores();
+		agregador.setEstado(1);
+		agregador.setPais(pais);
+		agregador.setId(4);
+		agregador.setNombre_agregador("AGREGADOR 4 FROM HIBERNATE");
+		
+		createData(agregador);
+
+		Metodos metodo=new Metodos();
+		
+		
+		createData(metodo);
+		
+		Parametros parametros = new Parametros();
+		parametros.setId(22);
+		//parametros.setColumna("NUMERO");
+		//parametros.setInsumo("insumo1");
+		parametros.setMetodo(metodo);
+		parametros.setNombre("movil");
+		parametros.setTipo("java.lang.String");
+		
+		createData(parametros);
+		
+		Respuesta respuesta = new Respuesta();
+		respuesta.setId(1);
+		respuesta.setNombre("ni idea");
+		//respuesta.setPosicion(2);
 		respuesta.setTipo("java.lang.String");
 		respuesta.setMetodo(metodo);
 		

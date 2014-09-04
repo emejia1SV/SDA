@@ -6,7 +6,6 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 import sv.avantia.depurador.agregadores.entidades.Agregadores;
-import sv.avantia.depurador.agregadores.entidades.Clientes_Tel;
 import sv.avantia.depurador.agregadores.entidades.Pais;
 import sv.avantia.depurador.agregadores.hilo.ConsultaAgregadorPorHilo;
 import sv.avantia.depurador.agregadores.jdbc.BdEjecucion;

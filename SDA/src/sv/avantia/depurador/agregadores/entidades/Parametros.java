@@ -19,12 +19,6 @@ public class Parametros {
 	@Column(name = "NOMBRE", nullable = false)
 	private String nombre;
 
-	@Column(name = "INSUMO", nullable = false)
-	private String insumo;
-
-	@Column(name = "COLUMNA", nullable = false)
-	private String columna;
-
 	@Column(name = "TIPO", nullable = false)
 	private String tipo;
 
@@ -46,22 +40,6 @@ public class Parametros {
 
 	public void setNombre(String nombre) {
 		this.nombre = nombre;
-	}
-
-	public String getInsumo() {
-		return insumo;
-	}
-
-	public void setInsumo(String insumo) {
-		this.insumo = insumo;
-	}
-
-	public String getColumna() {
-		return columna;
-	}
-
-	public void setColumna(String columna) {
-		this.columna = columna;
 	}
 
 	public String getTipo() {

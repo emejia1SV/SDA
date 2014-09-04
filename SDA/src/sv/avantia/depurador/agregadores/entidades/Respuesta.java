@@ -22,8 +22,8 @@ public class Respuesta {
 	@Column(name = "NOMBRE", nullable = false)
 	private String nombre;
 
-	@Column(name = "POSICION", nullable = false)
-	private int posicion;
+	/*@Column(name = "POSICION", nullable = false)
+	private int posicion;*/
 
 	@ManyToOne
 	@JoinColumn(name = "ID_METODO")
@@ -43,14 +43,6 @@ public class Respuesta {
 
 	public void setTipo(String tipo) {
 		this.tipo = tipo;
-	}
-
-	public int getPosicion() {
-		return posicion;
-	}
-
-	public void setPosicion(int posicion) {
-		this.posicion = posicion;
 	}
 
 	public String getNombre() {

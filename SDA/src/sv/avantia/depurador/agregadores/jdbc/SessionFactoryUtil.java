@@ -74,6 +74,9 @@ public class SessionFactoryUtil {
 	 * @return SessionFactory
 	 * */
 	public static void closeSession(){
+		if(sessionAnnotationFactory == null)
+			return;
+		
 		if(sessionAnnotationFactory.getCurrentSession().isOpen())
 			sessionAnnotationFactory.getCurrentSession().close();
 		
