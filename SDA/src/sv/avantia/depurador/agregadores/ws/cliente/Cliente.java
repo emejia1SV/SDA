@@ -2,7 +2,10 @@ package sv.avantia.depurador.agregadores.ws.cliente;
 
 import java.io.File;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -20,6 +23,7 @@ import javax.wsdl.Message;
 import javax.wsdl.Operation;
 import javax.wsdl.Part;
 import javax.wsdl.Port;
+import javax.wsdl.PortType;
 import javax.wsdl.Service;
 import javax.wsdl.extensions.ExtensibilityElement;
 import javax.wsdl.extensions.UnknownExtensibilityElement;
@@ -230,6 +234,9 @@ public class Cliente {
 	}
 
 	// holds the SOAP Body element for each message
+	private Element header = null;
+		
+	// holds the SOAP Body element for each message
 	private Element body = null;
 		
 	// WSDL4J Factory instance
@@ -248,7 +255,8 @@ public class Cliente {
 	{
 		try 
 		{
-			test1();
+			Cliente wsdlparser = new Cliente();
+			wsdlparser.WsdlParserXXX("http://mar-pc:8080/testwsdltojava/BlackGrayService?wsdl");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -276,9 +284,9 @@ public class Cliente {
 		// for testing purposes only
 
 		Pais pais = new Pais();
-		pais.setId(3);
-		pais.setCodigo("504");
-		pais.setNombre("Honduras");
+		pais.setId(2);
+		pais.setCodigo("502");
+		pais.setNombre("Guatemala");
 		pais.setEstado(1);
 		
 		//createData(pais);
@@ -286,8 +294,8 @@ public class Cliente {
 		Agregadores agregador = new Agregadores();
 		agregador.setEstado(1);
 		agregador.setPais(pais);
-		agregador.setId(4);
-		agregador.setNombre_agregador("AGREGADOR 4 FROM HIBERNATE");
+		agregador.setId(5);
+		agregador.setNombre_agregador("SMT");
 		
 		//createData(agregador);
 		
@@ -295,7 +303,7 @@ public class Cliente {
 		Cliente wsdlparser = new Cliente();
 		// http://www.xignite.com/xquotes.asmx?WSDL
 		
-		agregador = wsdlparser.getServicesInfo("http://192.168.0.100:8090/axis2/services/Servicio_1?wsdl", agregador);
+		agregador = wsdlparser.getServicesInfo("http://mar-pc:8080/testwsdltojava/BlackGrayService?wsdl", agregador);
 		
 		for (Metodos operation : agregador.getMetodos()) {
 			System.out.println("Operation Name: " 		+ operation.toString());
@@ -308,16 +316,15 @@ public class Cliente {
 			System.out.println("getTargetObjectURI(): "	+ operation.getTargetObjectURI());
 			System.out.println("getTargetURL(): "		+ operation.getTargetURL());
 			System.out.println();
+			
+			
 			for (Parametros param : operation.getParametros()) {
 				System.out.println(param.getNombre());
 				System.out.println(param.getTipo());
 			}
 			
-			System.out.println("SOAP response: \n"+invokeOperation(operation));
-			
-			
+			System.out.println("SOAP response: \n"+invokeOperation(operation));	
 		}
-		
 		SessionFactoryUtil.closeSession();
 	}
 	
@@ -338,6 +345,9 @@ public class Cliente {
 			// create the WSDL Reader object
 			WSDLReader reader = wsdlFactory.newWSDLReader();
 
+			reader.setFeature("javax.wsdl.verbose", false);
+			reader.setFeature("javax.wsdl.importDocuments", true);
+            
 			// read the WSDL and get the top-level Definition object
 			Definition def = reader.readWSDL(null, wsdlURI);
 
@@ -649,12 +659,52 @@ public class Cliente {
 		envelope.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xsd",
 				"http://www.w3.org/2001/XMLSchema");
 
-		// TO DO add SOAP header (security headers etc)
-
+		// create the SOAP header (security headers etc)
+		header = document.createElementNS("http://schemas.xmlsoap.org/soap/envelope/", "SOAP-ENV:Header");
+		
+		/* No eliminar sera implementado a  futuro actualmente no manejara encabezado dinamico
+		 * Element node =  DocumentBuilderFactory
+			    .newInstance()
+			    .newDocumentBuilder()
+			    .parse(new ByteArrayInputStream("<node>value</node>".getBytes()))
+			    .getDocumentElement();
+		
+		node = (Element) document.importNode(node, true);
+		header.appendChild(node);*/
+		
+		Element security = document.createElement( "wsse:Security" );
+		security.setAttribute("xmlns:wsse", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd");
+		header.appendChild(security);
+		
+		Element usernameToken = document.createElement("wsse:UsernameToken");
+        usernameToken.setAttribute("xmlns:wsu", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd");
+        security.appendChild(usernameToken);
+        
+        Element userName = document.createElement("wsse:Username");
+        userName.setTextContent("NKK");
+        usernameToken.appendChild(userName);
+        
+        Element userPass = document.createElement("wsse:Password");
+        userPass.setAttribute("Type", "...#PasswordDigest");
+        userPass.setTextContent("jdnsdkjfh78sdfys87d");
+        usernameToken.appendChild(userPass);
+		
+        Element nonce = document.createElement("wsse:Nonce");
+        nonce.setTextContent("WScqanjCEAC4mQoBE07sAQ====");
+        usernameToken.appendChild(nonce);
+        
+        Element created = document.createElement("wsu:Created");
+        SimpleDateFormat df = new SimpleDateFormat("yyyy-mm-dd'T'hh:mm:ss'Z'");
+        created.setTextContent(df.format(Calendar.getInstance().getTime()));
+        usernameToken.appendChild(created);
+        
 		// create the SOAP Body (store in a memeber variale so we can easly access later)
 		body = document.createElementNS(
 				"http://schemas.xmlsoap.org/soap/envelope/", "SOAP-ENV:Body");
-
+		
+		// add the body to the envelope
+		envelope.appendChild(header);
+		
 		// add the body to the envelope
 		envelope.appendChild(body);
 
@@ -700,9 +750,7 @@ public class Cliente {
 			// get the Binding Output
 			@SuppressWarnings("unused")
 			BindingOutput bindingOutput = bindingOper.getBindingOutput();
-
-			// TO DO Build the SOAP Header (not really needed for SOAP testing)
-
+			
 			// get the SOAP Body part (of the operation inside the binding)
 			ExtensibilityElement bodyElem = findExtensibilityElement(bindingInput.getExtensibilityElements(), "body");
 
@@ -1110,4 +1158,91 @@ public class Cliente {
 			}
 		}
 	}
+	
+	
+	
+	public void WsdlParserXXX(String wsdlURL) throws javax.wsdl.WSDLException {
+
+        WSDLReader wsdlReader = wsdlFactory.newWSDLReader();
+
+		wsdlReader.setFeature("javax.wsdl.verbose", false);
+		wsdlReader.setFeature("javax.wsdl.importDocuments", true);
+
+		Definition definition = wsdlReader.readWSDL(wsdlURL);
+		if (definition == null) {
+		    System.err.println("definition element is null");
+		    System.exit(1);
+		}
+
+        
+		/***********************************************************
+		 * http://exchangerxml.googlecode.com/svn/trunk/src/com/cladonia/xml/webservice/wsdl/WSDLParser.java
+		 ***********************************************************
+		 *http://predic8.com/wsdl-reading.htm
+		 ***********************************************************/
+
+// find service
+		Map servicesMap = definition.getServices();
+		Iterator servicesIter = servicesMap.values().iterator();
+		Service service;
+		QName qName;
+		while (servicesIter.hasNext()) {
+		    service = (Service) servicesIter.next();
+		    qName = service.getQName();
+		    System.out.println("Service qName: " + qName + "\nLocal Part: " + qName.getLocalPart() + "\nNamespace URI: " + qName.getNamespaceURI());
+		    
+		}
+
+		/*************************************************************
+		 *************************************************************
+		 *************************************************************/
+		Map portTypesMap = definition.getAllPortTypes();
+		Iterator portTypesIter = portTypesMap.values().iterator();
+		PortType portType;
+		while (portTypesIter.hasNext()) {
+		    portType = (PortType) portTypesIter.next();
+		    Iterator operationsIter = portType.getOperations().iterator();
+		    Operation operation;
+		    while (operationsIter.hasNext()) {
+		        operation = (Operation) operationsIter.next();
+
+		        System.out.println("Input Message: " + operation.getInput().getName());
+
+		        System.out.println("******************* " + operation.getName() + " *******************");
+		        // display request parameters
+		        Map inputPartsMap = operation.getInput().getMessage().getParts();
+		        Collection inputParts = inputPartsMap.values();
+		        Iterator inputPartIter = inputParts.iterator();
+		        System.out.print("\tRequest: ");
+		        String inPartName;
+		        QName inPartTypeName;
+		        while (inputPartIter.hasNext()) {
+		            Part part = (Part) inputPartIter.next();
+		            inPartName = part.getName();
+		            inPartTypeName = part.getTypeName();
+//                        System.out.println(inPartName + ":" + inPartTypeName.getLocalPart() + " , " + inPartTypeName.getNamespaceURI());
+		            System.out.println(inPartName + ":" + inPartTypeName);
+		        }
+
+// display response parameters
+		        Map outputPartsMap = operation.getOutput().getMessage().getParts();
+		        Collection outputParts = outputPartsMap.values();
+		        Iterator outputPartIter = outputParts.iterator();
+		        System.out.print("\tResponse: ");
+		        String outPartName;
+		        QName outPartTypeName;
+		        while (outputPartIter.hasNext()) {
+		            Part part = (Part) outputPartIter.next();
+		            outPartName = part.getName();
+		            outPartTypeName = part.getTypeName();
+//                        System.out.println(outPartName + ":" + outPartTypeName.getLocalPart() + " , " + outPartTypeName.getNamespaceURI());
+		            System.out.println(outPartName + ":" + outPartTypeName);
+		        }
+		    }
+		}
+    }
+
+
+	
+	
 }

@@ -3,8 +3,10 @@ package sv.avantia.depurador.agregadores.test;
 import java.util.List;
 
 import org.apache.log4j.Logger;
+import org.hibernate.Criteria;
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
+import org.hibernate.criterion.Projections;
 
 import sv.avantia.depurador.agregadores.entidades.Agregadores;
 import sv.avantia.depurador.agregadores.entidades.Clientes_Tel;
@@ -23,9 +25,16 @@ public class TestHibernate {
 	 * @param args
 	 */	
 	public static void main(String[] args) {
-		test7();
-		//obtenerParmetrizacion();
-		//testDeleteCascade();
+		try {
+			//test0();
+			
+			//obtenerParmetrizacion();
+			testDeleteCascade();
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		
+		
 	}
 	
 	public static void obtenerParmetrizacion(){
@@ -49,9 +58,9 @@ public class TestHibernate {
 	
 	public static void testDeleteCascade(){
 		Pais pais = new Pais();
-		pais.setId(3);
-		pais.setCodigo("504");
-		pais.setNombre("Honduras");
+		pais.setId(2);
+		pais.setCodigo("502");
+		pais.setNombre("Guatema");
 		pais.setEstado(1);
 		deleteData(pais);
 
@@ -61,6 +70,11 @@ public class TestHibernate {
         	
         if(!SessionFactoryUtil.getSessionAnnotationFactory().isClosed())
         	SessionFactoryUtil.getSessionAnnotationFactory().close();
+	}
+	
+	public static void test0() throws Exception{
+		Agregadores agregadores = new Agregadores();
+		System.out.println(maxValue(agregadores));
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -511,5 +525,35 @@ public class TestHibernate {
 			}
 		}
 	  }
+	
+	private static Integer maxValue(Object obj){
+		Session session =  SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession();
+		try {
+			session.beginTransaction();
+			
+			Criteria criteria = session
+			    .createCriteria(obj.getClass())
+			    .setProjection(Projections.max("ID"));
+			Integer dato = (Integer)criteria.uniqueResult();
+			session.getTransaction().commit();
+			
+			return dato;
+		} catch (RuntimeException e) {
+			e.printStackTrace();
+			if (session.getTransaction() != null
+					&& session.getTransaction().isActive()) {
+				try {
+					// Second try catch as the rollback could fail as well
+					session.getTransaction().rollback();
+				} catch (HibernateException e1) {
+					logger.debug("Error rolling back transaction");
+				}
+				// throw again the first exception
+				throw e;
+			}
+			return null;
+		}
+		
+	}
 
 }
