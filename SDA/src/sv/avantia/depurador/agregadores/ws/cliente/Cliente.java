@@ -257,6 +257,7 @@ public class Cliente {
 	{
 		try 
 		{
+			// nueva prueba
 			Pais pais = new Pais();
 			pais.setId(2);
 			pais.setCodigo("502");
