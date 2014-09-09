@@ -34,6 +34,8 @@ import javax.wsdl.extensions.soap.SOAPOperation;
 import javax.wsdl.factory.WSDLFactory;
 import javax.wsdl.xml.WSDLReader;
 import javax.xml.namespace.QName;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.apache.log4j.Logger;
 import org.exolab.castor.xml.schema.ComplexType;
@@ -255,8 +257,47 @@ public class Cliente {
 	{
 		try 
 		{
+			Pais pais = new Pais();
+			pais.setId(2);
+			pais.setCodigo("502");
+			pais.setNombre("Guatemala");
+			pais.setEstado(1);
+			
+			//createData(pais);
+			
+			Agregadores agregador = new Agregadores();
+			agregador.setEstado(1);
+			agregador.setPais(pais);
+			agregador.setId(5);
+			agregador.setNombre_agregador("SMT");
+			
+			//createData(agregador);
+			
 			Cliente wsdlparser = new Cliente();
-			wsdlparser.WsdlParserXXX("http://mar-pc:8080/testwsdltojava/BlackGrayService?wsdl");
+			//agregador = wsdlparser.getServicesInfoFromFile("C:/Users/Edwin/Documents/documentacion Agregadores claro/SMT wsdl/WSDL Black Gray List_RolandoSkype/WSDL Black Gray List/SMT_blackgray_service_1_0_1.wsdl", agregador);
+			agregador = wsdlparser.getServicesInfo("http://192.168.0.100:8090/axis2/services/pruebaWsCadena?wsdl", agregador);
+			
+			for (Metodos operation : agregador.getMetodos()) {
+				System.out.println("Operation Name: " 		+ operation.toString());
+				System.out.println("getInputMessageName: "	+ operation.getInputMessageName());
+				System.out.println("getInputMessageText: "	+ operation.getInputMessageText());
+				System.out.println("getNamespaceURI: "		+ operation.getNamespaceURI());
+				System.out.println("getSoapActionURI: "		+ operation.getSoapActionURI());
+				System.out.println("getStyle: " 			+ operation.getStyle());
+				System.out.println("getTargetMethodName: "	+ operation.getTargetMethodName());
+				System.out.println("getTargetObjectURI(): "	+ operation.getTargetObjectURI());
+				System.out.println("getTargetURL(): "		+ operation.getTargetURL());
+				System.out.println();
+				
+				
+				for (Parametros param : operation.getParametros()) {
+					System.out.println(param.getNombre());
+					System.out.println(param.getTipo());
+				}
+				
+				System.out.println("SOAP response: \n"+invokeOperation(operation));	
+			}
+			SessionFactoryUtil.closeSession();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -280,7 +321,7 @@ public class Cliente {
 		System.out.println(wsdlparser.invokeOperation(operation));
 	}
 	
-	private static void test1() throws WSDLException{
+	public static void test1() throws WSDLException{
 		// for testing purposes only
 
 		Pais pais = new Pais();
@@ -328,6 +369,90 @@ public class Cliente {
 		SessionFactoryUtil.closeSession();
 	}
 	
+	public Agregadores getServicesInfoFromFile(String urlWSDLFile, Agregadores agregador){
+		try {
+			DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
+            File file = new File(urlWSDLFile);
+            Document doc = docBuilder.parse(file);
+            
+            return getServicesInfo(doc, agregador);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return agregador;
+	}
+	
+	
+	/**
+	 * Builds a List of ServiceInfo components for each Service defined in a
+	 * WSDL Document
+	 * 
+	 * @param wsdlURI
+	 *            A URI that points to a WSDL file
+	 * 
+	 * @return A List of ServiceInfo objects populated for each service defined
+	 *         in the WSDL file.
+	 */
+	public Agregadores getServicesInfo(Document wsdl, Agregadores agregador) throws WSDLException 
+	{
+		try 
+		{
+			// create the WSDL Reader object
+			WSDLReader reader = wsdlFactory.newWSDLReader();
+
+			reader.setFeature("javax.wsdl.verbose", false);
+			reader.setFeature("javax.wsdl.importDocuments", true);
+            
+			// read the WSDL and get the top-level Definition object
+			Definition def = reader.readWSDL(null, wsdl);
+
+			// create a castor schema from the types element defined in WSDL
+			// this method will return null if there are types defined in the WSDL
+			wsdlTypes = createSchemaFromTypes(def);
+
+			// get the services defined in the document
+			@SuppressWarnings("rawtypes")
+			Map services = def.getServices();
+
+			if (services != null) 
+			{
+				// create a ServiceInfo for each service defined
+				@SuppressWarnings("rawtypes")
+				Iterator svcIter = services.values().iterator();
+				while (svcIter.hasNext()) 
+				{
+					// add the new component to the List to be returned
+					// populate the new component from the WSDL Definition read
+					agregador = populateInfo((Service) svcIter.next(), agregador);					
+				}
+				
+			}
+
+			//clean of memory JVM object instanced
+			reader=null;
+			def = null;
+			services = null;
+			
+			// return the List of services we created
+			return agregador;
+
+		} 
+		catch (WSDLException e) 
+		{
+			// should really log this here
+			final String errMsg = "The following error occurred obtaining the service information from the WSDL: " + e.getMessage();
+			System.out.println(errMsg);
+			throw e;
+		} 
+		catch (Exception e) 
+		{
+			final String errMsg = "The following error occurred obtaining the service information from the WSDL: " + e.getMessage();
+			System.out.println(errMsg);
+			throw new WSDLException(errMsg, e);
+		}
+	}
+	
 	/**
 	 * Builds a List of ServiceInfo components for each Service defined in a
 	 * WSDL Document
@@ -345,8 +470,8 @@ public class Cliente {
 			// create the WSDL Reader object
 			WSDLReader reader = wsdlFactory.newWSDLReader();
 
-			reader.setFeature("javax.wsdl.verbose", false);
-			reader.setFeature("javax.wsdl.importDocuments", true);
+			//reader.setFeature("javax.wsdl.verbose", false);
+			//reader.setFeature("javax.wsdl.importDocuments", true);
             
 			// read the WSDL and get the top-level Definition object
 			Definition def = reader.readWSDL(null, wsdlURI);

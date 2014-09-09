@@ -33,9 +33,4 @@ public class Clientes_Tel {
 		this.numero = numero;
 	}
 
-	@Override
-	public String toString() {
-		return "Clientes_Tel [id=" + id + ", numero=" + numero + "]";
-	}
-
 }

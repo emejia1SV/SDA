@@ -53,6 +53,7 @@ public class Iniciar {
 				ConsultaAgregadorPorHilo hilo = new ConsultaAgregadorPorHilo();
 				hilo.setMoviles(moviles);
 				hilo.setAgregador(agregador);
+				hilo.start();
 			}
 		}
 		
@@ -66,7 +67,7 @@ public class Iniciar {
 	public static void obtenerNumeros(){
 		BdEjecucion ejecucion = new BdEjecucion();
 		try {
-			moviles = (List<String>) ejecucion.listData("SELECT NUMERO FROM CLIENTE_TEL");
+			moviles = (List<String>) ejecucion.listData("select b.numero from CLIENTE_TEL b where b.id='287040'");
 		} finally{
 			ejecucion = null;
 		}
@@ -77,7 +78,7 @@ public class Iniciar {
 	public static List<Pais> obtenerParmetrizacion(){
 		BdEjecucion ejecucion = new BdEjecucion();
 		try {
-			return (List<Pais>) ejecucion.listData("FROM AGR_PAISES");
+			return (List<Pais>) ejecucion.listData("FROM AGR_PAISES WHERE ID = 2");
 		} finally{
 			ejecucion = null;
 		}

@@ -23,39 +23,34 @@ public class ConsultaAgregadorPorHilo extends Thread {
 		try {
 			procesarServiciosWeb();
 		} catch (Exception e) {
-			e.printStackTrace();
+			System.out.println("Hubo Error dentro del hilo");
+			this.interrupt();
 		}
 	}
 	
-	private void procesarServiciosWeb(){
+	@SuppressWarnings("static-access")
+	private void procesarServiciosWeb() throws WSDLException{
+		Cliente cliente = new Cliente();
 		if (getAgregador() != null) {
-
+			System.out.println("procesar agregador...");
 			if (getAgregador().getMetodos() != null) {
+				System.out.println("procesar metodos...");
 				for (Metodos metodo : getAgregador().getMetodos()) {
 					if (metodo.getParametros() != null) {
-						for (Parametros parametro : metodo.getParametros()) {
-							System.out.println(parametro.getNombre());
-							/*if (parametro.getInsumo().equals(resultSet0.getString("INSUMO"))) {
-							metodo.getOperacionSRV().setInputMessageText(
-									metodo.getOperacionSRV().getInputMessageText().replace(("_*"+parametro.getNombre()+"_*"), "" + Class.forName(parametro.getTipo()).getConstructor(String.class).newInstance(resultSet0.getString(parametro.getColumna().toUpperCase())))
-									);
-						}else if (parametro.getInsumo().equals(resultSet1.getString("INSUMO"))) {
-							metodo.getOperacionSRV().setInputMessageText(
-									metodo.getOperacionSRV().getInputMessageText().replace(("_*"+parametro.getNombre()+"_*"), "" + Class.forName(parametro.getTipo()).getConstructor(String.class).newInstance(resultSet1.getString(parametro.getColumna().toUpperCase())))
-									);
-						}else if (parametro.getInsumo().equals(resultSet2.getString("INSUMO"))) {
-							metodo.getOperacionSRV().setInputMessageText(
-									metodo.getOperacionSRV().getInputMessageText().replace(("_*"+parametro.getNombre()+"_*"), "" + Class.forName(parametro.getTipo()).getConstructor(String.class).newInstance(resultSet2.getString(parametro.getColumna().toUpperCase())))
-									);
-						}*/	
+						
+						System.out.println("procesando ");
+						for (String movil : moviles) {	
+							for (Parametros parametro : metodo.getParametros()) 
+							{
+								System.out.println("Remplazando " + parametro.getNombre());
+								metodo.setInputMessageText(metodo.getInputMessageText().replaceAll(parametro.getNombre(), movil));									
+							}
+							System.out.println("getInputMessageText: "	+ metodo.getInputMessageText());
+							System.out.println("SOAP response: \n"+cliente.invokeOperation(metodo));	
 						}
 					}
-					// obtenerRespuesta(Cliente.invokeOperation(metodo.getOperacionSRV()));
-					System.out.println();
 				}
-
 			}
-
 		}
 	}
 
