@@ -3,7 +3,6 @@ package sv.avantia.depurador.agregadores.test;
 import java.util.List;
 
 import org.apache.log4j.Logger;
-import org.apache.log4j.net.SMTPAppender;
 import org.hibernate.Criteria;
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
@@ -187,7 +186,8 @@ public class TestHibernate {
 	public static void datos(){
 		BdEjecucion ejecucion = new BdEjecucion();
 		try {
-			List<String> datos = (List<String>) ejecucion.listData("select b.numero from CLIENTE_TEL b where b.id='287040'");
+			@SuppressWarnings("unchecked")
+			List<String> datos = ((List<String>) ejecucion.listData("select b.numero from CLIENTE_TEL b where b.id='287040'"));
 			for (int i = 0; i < datos.size(); i++) {
 				System.out.println(datos.get(i));
 			}

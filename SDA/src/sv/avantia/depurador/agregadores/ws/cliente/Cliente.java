@@ -7,7 +7,6 @@ import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -25,7 +24,6 @@ import javax.wsdl.Message;
 import javax.wsdl.Operation;
 import javax.wsdl.Part;
 import javax.wsdl.Port;
-import javax.wsdl.PortType;
 import javax.wsdl.Service;
 import javax.wsdl.extensions.ExtensibilityElement;
 import javax.wsdl.extensions.UnknownExtensibilityElement;
@@ -1368,7 +1366,7 @@ public class Cliente {
 	}
 	
 	
-	
+	/*
 	public void WsdlParserXXX(String wsdlURL) throws javax.wsdl.WSDLException {
 
         WSDLReader wsdlReader = wsdlFactory.newWSDLReader();
@@ -1383,11 +1381,11 @@ public class Cliente {
 		}
 
         
-		/***********************************************************
+		*//***********************************************************
 		 * http://exchangerxml.googlecode.com/svn/trunk/src/com/cladonia/xml/webservice/wsdl/WSDLParser.java
 		 ***********************************************************
 		 *http://predic8.com/wsdl-reading.htm
-		 ***********************************************************/
+		 ***********************************************************//*
 
 // find service
 		Map servicesMap = definition.getServices();
@@ -1401,9 +1399,9 @@ public class Cliente {
 		    
 		}
 
-		/*************************************************************
+		*//*************************************************************
 		 *************************************************************
-		 *************************************************************/
+		 *************************************************************//*
 		Map portTypesMap = definition.getAllPortTypes();
 		Iterator portTypesIter = portTypesMap.values().iterator();
 		PortType portType;
@@ -1449,7 +1447,7 @@ public class Cliente {
 		    }
 		}
     }
-
+*/
 
 	 /*DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
     DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
