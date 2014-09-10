@@ -1,7 +1,9 @@
 package sv.avantia.depurador.agregadores.ws.cliente;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -36,6 +38,11 @@ import javax.wsdl.xml.WSDLReader;
 import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.soap.MessageFactory;
+import javax.xml.soap.MimeHeaders;
+import javax.xml.soap.SOAPConnection;
+import javax.xml.soap.SOAPConnectionFactory;
+import javax.xml.soap.SOAPMessage;
 
 import org.apache.log4j.Logger;
 import org.exolab.castor.xml.schema.ComplexType;
@@ -178,7 +185,7 @@ public class Cliente {
 	{
 		try{
 		
-		Document docRequest = XMLSupport.parse(operation.getInputMessageText());
+		Document docRequest = XMLSupport.parse("<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:loc=\"http://www.csapi.org/schema/parlayx/blackgray/v1_0/local\"><soapenv:Header><wsse:Security xmlns:wsse=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd\"><wsse:UsernameToken xmlns:wsu=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd\"><wsse:Username>PA00000737</wsse:Username><wsse:Password Type=\"...#PasswordDigest\">x9t/yLcnC3VYKCb6v0uezTwYJNk=</wsse:Password><wsse:Nonce>096459e93f20a2b39ab6c5ddd493e44f58bc3a91</wsse:Nonce><wsse:Created>2012-10-17T11:51:50.263Z</wsse:Created></wsse:UsernameToken></wsse:Security><tns:RequestSOAPHeader xmlns:tns=\"http://www.huawei.com.cn/schema/common/v2_1\"><tns:AppId>35000001000001</tns:AppId><tns:TransId>2014011716010012345</tns:TransId><tns:OA>50279451598</tns:OA><tns:FA>50279451598</tns:FA></tns:RequestSOAPHeader></soapenv:Header><soapenv:Body><loc:addGrayList><loc:version>1.0</loc:version><loc:grayList><grayee><msisdn>50279451598</msisdn>				            </grayee></loc:grayList></loc:addGrayList></soapenv:Body></soapenv:Envelope>");
 
 		// create the saaj based soap client
 		SOAPClient client = new SOAPClient(docRequest);
@@ -190,14 +197,18 @@ public class Cliente {
 		}
 
 		// set the SOAPAction
-		client.setSOAPAction(operation.getSoapActionURI());
+		//System.out.println(operation.getSoapActionURI());
+		client.setSOAPAction("loc:addGrayList");
 
 		// get the url
-		URL url = new URL(operation.getTargetURL());
+		//System.out.println(operation.getTargetURL());
+		URL url = new URL("https://hub.americamovil.com/sag/services/blackgrayService");
 
 		// send the soap message
 		Document responseDoc = client.send(url);
 
+		System.out.println(responseDoc.toString());
+		
 		lecturaCompleta(responseDoc);
        // returns just the soap envelope part of the message (i.e no returned attachements will be
 	   // seen)
@@ -253,8 +264,80 @@ public class Cliente {
 	// schema target namespace
 	private String schemaTargetNamespace = null;	
 	
+	//
+	
+	static {
+	    //for localhost testing only
+	    javax.net.ssl.HttpsURLConnection.setDefaultHostnameVerifier(
+	    new javax.net.ssl.HostnameVerifier(){
+ 
+	        public boolean verify(String hostname,
+	                javax.net.ssl.SSLSession sslSession) {
+	            if (hostname.equals("hub.americamovil.com")) {
+	                return true;
+	            }
+	            return false;
+	        }
+	    });
+	}
+	
+	public static void testpropio(){
+		try {
+			SOAPConnectionFactory soapConnectionFactory = SOAPConnectionFactory.newInstance();
+	        SOAPConnection soapConnection = soapConnectionFactory.createConnection();
+
+	        String xml = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:loc=\"http://www.csapi.org/schema/parlayx/blackgray/v1_0/local\"><soapenv:Header><wsse:Security xmlns:wsse=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd\"><wsse:UsernameToken xmlns:wsu=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd\"><wsse:Username>PA00000737</wsse:Username><wsse:Password Type=\"...#PasswordDigest\">x9t/yLcnC3VYKCb6v0uezTwYJNk=</wsse:Password><wsse:Nonce>096459e93f20a2b39ab6c5ddd493e44f58bc3a91</wsse:Nonce><wsse:Created>2012-10-17T11:51:50.263Z</wsse:Created></wsse:UsernameToken></wsse:Security><tns:RequestSOAPHeader xmlns:tns=\"http://www.huawei.com.cn/schema/common/v2_1\"><tns:AppId>35000001000001</tns:AppId><tns:TransId>2014011716010012345</tns:TransId><tns:OA>50279451598</tns:OA><tns:FA>50279451598</tns:FA></tns:RequestSOAPHeader></soapenv:Header><soapenv:Body><loc:addGrayList><loc:version>1.0</loc:version><loc:grayList><grayee><msisdn>50279451598</msisdn>				            </grayee></loc:grayList></loc:addGrayList></soapenv:Body></soapenv:Envelope>";
+	        
+	        MessageFactory messageFactory = MessageFactory.newInstance();
+	        SOAPMessage message = messageFactory.createMessage(new MimeHeaders(), new ByteArrayInputStream(xml.getBytes(Charset.forName("UTF-8"))));
+	        
+	        // Send SOAP Message to SOAP Server
+	        String url = "https://hub.americamovil.com/sag/services/blackgrayService";
+	        SOAPMessage soapResponse = soapConnection.call(message, url);
+
+	        // print SOAP Response
+	        System.out.print("Response SOAP Message:");
+	        soapResponse.writeTo(System.out);
+
+	        soapConnection.close();
+			//invokeOperation(null, null);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public static void testLocal(){
+		try {
+			SOAPConnectionFactory soapConnectionFactory = SOAPConnectionFactory.newInstance();
+	        SOAPConnection soapConnection = soapConnectionFactory.createConnection();
+
+	        String xml= "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:cad=\"http://cadena.webservices.test.com\"><soapenv:Header/><soapenv:Body><cad:saludo><!--Optional:--><cad:texto>prueba</cad:texto></cad:saludo></soapenv:Body></soapenv:Envelope>";
+	        
+	        MessageFactory messageFactory = MessageFactory.newInstance();
+	        SOAPMessage message = messageFactory.createMessage(new MimeHeaders(), new ByteArrayInputStream(xml.getBytes(Charset.forName("UTF-8"))));
+	        
+	        // Send SOAP Message to SOAP Server
+	        String url = "http://192.168.0.100:8090/axis2/services/pruebaWsCadena.pruebaWsCadenaHttpSoap11Endpoint/";
+	        SOAPMessage soapResponse = soapConnection.call(message, url);
+
+	        // print SOAP Response
+	        System.out.println("Response SOAP Message:");
+	        soapResponse.writeTo(System.out);
+
+	        soapConnection.close();
+			//invokeOperation(null, null);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	
 	public static void main(String[] args) throws Exception
 	{
+		testpropio();
+	}
+	
+	public static void prueba(){
 		try 
 		{
 			// nueva prueba
@@ -1271,8 +1354,7 @@ public class Cliente {
 			session.getTransaction().commit();
 			//session.close();
 		} catch (RuntimeException e) {
-			if (session.getTransaction() != null
-					&& session.getTransaction().isActive()) {
+			if (session.getTransaction() != null && session.getTransaction().isActive()) {
 				try {
 					// Second try catch as the rollback could fail as well
 					session.getTransaction().rollback();
@@ -1369,6 +1451,25 @@ public class Cliente {
     }
 
 
-	
+	 /*DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+    DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
+    File file = new File("C:/Users/mar/Desktop/JAVAxml/libro.xml");
+    org.jdom.Document doc = (org.jdom.Document) docBuilder.parse(file);
+
+    doc.getDocumentElement().normalize();
+    
+    SAXBuilder builder = new SAXBuilder();
+	  	File xmlFile = new File("c:\\file.xml");
+
+	  try {
+
+		Document document = (Document) builder.build(xmlFile);*/
+
+   /* 
+    String xml = new XMLOutputter().outputString(doc);
+       InputStream inputStream = new StringBufferInputStream(xml);
+     SOAPMessage message = messageFactory.createMessage(null, inputStream);
+   
+    */
 	
 }

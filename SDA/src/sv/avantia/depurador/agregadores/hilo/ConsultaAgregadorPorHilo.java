@@ -25,6 +25,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 		} catch (Exception e) {
 			System.out.println("Hubo Error dentro del hilo");
 			this.interrupt();
+			e.printStackTrace();
 		}
 	}
 	
