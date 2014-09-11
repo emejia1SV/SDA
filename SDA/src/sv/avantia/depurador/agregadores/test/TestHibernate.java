@@ -167,9 +167,17 @@ public class TestHibernate {
 	 */	
 	public static void main(String[] args) {
 		try {
+			obtenerPaises();
 			//testDeleteCascade();
 			//testSMTSave();
-			datos();
+			//datos();
+			
+			if(SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().isOpen())
+	        	SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().close();
+	        	
+	        if(!SessionFactoryUtil.getSessionAnnotationFactory().isClosed())
+	        	SessionFactoryUtil.getSessionAnnotationFactory().close();
+	        
 		} catch (Exception e) {
 			if(SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().isOpen())
 	        	SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().close();
@@ -213,6 +221,17 @@ public class TestHibernate {
 		
 		SessionFactoryUtil.closeSession();
 
+	}
+	
+	public static void obtenerPaises(){
+		@SuppressWarnings("unchecked")
+		List<Pais> pais = listData("FROM AGR_PAISES");
+		
+		for (int i = 0; i < pais.size(); i++) {
+			System.out.println(pais.get(i).getNombre());
+		}
+		
+		SessionFactoryUtil.closeSession();
 	}
 	
 	public static void testDeleteCascade(){

@@ -1,6 +1,7 @@
 package sv.avantia.depurador.agregadores.ws.cliente;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -20,6 +21,16 @@ import javax.xml.soap.SOAPConnection;
 import javax.xml.soap.SOAPConnectionFactory;
 import javax.xml.soap.SOAPException;
 import javax.xml.soap.SOAPMessage;
+import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMResult;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 public class ClientSSL {
 
@@ -101,10 +112,46 @@ public class ClientSSL {
 			// View the output
 			System.out.println("Soap response");
 			rp.writeTo(System.out);
+			
+			Document doc = toDocument(rp);
+			
+			lecturaCompleta(doc, "ns1:resultCode");
 		} 
 		catch (Exception e) 
 		{
 			System.out.println(e.getMessage());
+		}
+	}
+	
+	private static Document toDocument(SOAPMessage soapMsg)
+			throws TransformerConfigurationException, TransformerException,
+			SOAPException, IOException {
+		Source src = soapMsg.getSOAPPart().getContent();
+		TransformerFactory tf = TransformerFactory.newInstance();
+		Transformer transformer = tf.newTransformer();
+		DOMResult result = new DOMResult();
+		transformer.transform(src, result);
+		return (Document) result.getNode();
+	}
+	
+	private static void lecturaCompleta(Document doc, String nodeNameToReader) {
+		doc.getDocumentElement().normalize();
+		if (doc.getDocumentElement().hasChildNodes()) {
+			NodeList nodeList = doc.getDocumentElement().getChildNodes();
+			readerList(nodeList, nodeNameToReader);
+		}
+	}
+
+	private static void readerList(NodeList nodeList, String nodeNameToReader) {
+		for (int i = 0; i < nodeList.getLength(); i++) {
+			Node node = nodeList.item(i);
+			if (node.getNodeType() == Node.ELEMENT_NODE) {
+				if(node.getNodeName().equals(nodeNameToReader))
+					System.out.println(node.getTextContent());//esto debere guardar
+				
+				if (node.hasChildNodes())
+					readerList(node.getChildNodes(), nodeNameToReader);
+			}
 		}
 	}
 
