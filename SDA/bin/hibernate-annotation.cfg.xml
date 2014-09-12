@@ -21,7 +21,7 @@
         <mapping class="sv.avantia.depurador.agregadores.entidades.Metodos"  />
         <mapping class="sv.avantia.depurador.agregadores.entidades.Parametros"  />
         <mapping class="sv.avantia.depurador.agregadores.entidades.Respuesta"  />
-        <mapping class="sv.avantia.depurador.agregadores.entidades.Depuracion_bck"  />
+        <mapping class="sv.avantia.depurador.agregadores.entidades.LogDepuracion"  />
         <mapping class="sv.avantia.depurador.agregadores.entidades.Clientes_Tel"  />
         
     </session-factory>

@@ -1,5 +1,6 @@
 package sv.avantia.depurador.agregadores.entidades;
 
+import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -7,23 +8,30 @@ import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
+import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 
-@Entity(name = "AGR_AGREGADORES")
-@Table(name = "AGR_AGREGADORES", uniqueConstraints = { @UniqueConstraint(columnNames = { "ID" }) })
-public class Agregadores {
+@Entity(name = "SDA_AGREGADORES")
+@Table(name = "SDA_AGREGADORES", uniqueConstraints = { @UniqueConstraint(columnNames = { "ID" }) })
+public class Agregadores implements Serializable {
 
+	private static final long serialVersionUID = 1L;
+
+	@GeneratedValue(strategy=GenerationType.AUTO, generator="Seq_Gen_Agregador")
+    @SequenceGenerator(name="Seq_Gen_Agregador", sequenceName="SQ_SDA_AGREGADORES")
 	@Id
 	@Column(name = "ID", nullable = false)
-	private int id;
+	private Integer id;
 
 	@Column(name = "ESTADO", nullable = false)
-	private int estado;
+	private Integer estado;
 
 	@Column(name = "NOMBRE_AGREGADOR", nullable = false)
 	private String nombre_agregador;
@@ -39,19 +47,19 @@ public class Agregadores {
 
 	}
 
-	public int getId() {
+	public Integer getId() {
 		return id;
 	}
 
-	public void setId(int id) {
+	public void setId(Integer id) {
 		this.id = id;
 	}
 
-	public int getEstado() {
+	public Integer getEstado() {
 		return estado;
 	}
 
-	public void setEstado(int estado) {
+	public void setEstado(Integer estado) {
 		this.estado = estado;
 	}
 
@@ -83,7 +91,6 @@ public class Agregadores {
 
 	@Override
 	public String toString() {
-		return "Agregadores [id=" + id + ", nombre_agregador="
-				+ nombre_agregador + "]";
+		return "Agregadores [id=" + id + ", nombre_agregador=" + nombre_agregador + "]";
 	}
 }

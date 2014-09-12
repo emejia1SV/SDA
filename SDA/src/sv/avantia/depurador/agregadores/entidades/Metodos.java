@@ -1,5 +1,6 @@
 package sv.avantia.depurador.agregadores.entidades;
 
+import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -7,20 +8,27 @@ import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
+import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 
-@Entity(name = "AGR_METODOS")
-@Table(name = "AGR_METODOS", uniqueConstraints = { @UniqueConstraint(columnNames = { "ID" }) })
-public class Metodos {
+@Entity(name = "SDA_METODOS")
+@Table(name = "SDA_METODOS", uniqueConstraints = { @UniqueConstraint(columnNames = { "ID" }) })
+public class Metodos implements Serializable{
 
+	private static final long serialVersionUID = 1L;
+	
+	@GeneratedValue(strategy=GenerationType.AUTO, generator="Seq_Gen_Metodo")
+    @SequenceGenerator(name="Seq_Gen_Metodo", sequenceName="SQ_SDA_METODOS")
 	@Id
 	@Column(name = "ID", nullable = false)
-	private int id;
+	private Integer id;
 
 	@ManyToOne
 	@JoinColumn(name = "ID_AGREGADOR")
@@ -29,40 +37,43 @@ public class Metodos {
 	@Column(name = "NOMBRE", nullable = false)
 	private String nombre;
 
-	@Column(name = "INPUTMESSAGENAME", nullable = false)
+	@Column(name = "INPUTMESSAGENAME")
 	private String inputMessageName;
+	
+	@Column(name = "END_POINT", nullable = false)
+	private String endPoint;
 
 	@Column(name = "INPUTMESSAGETEXT", nullable = false)
 	private String inputMessageText;
 
-	@Column(name = "NAMESPACEURI", nullable = false)
+	@Column(name = "NAMESPACEURI")
 	private String namespaceURI;
 
-	@Column(name = "SOAPACTIONURI", nullable = false)
+	@Column(name = "SOAPACTIONURI")
 	private String SoapActionURI;
 
-	@Column(name = "STYLE", nullable = true)
+	@Column(name = "STYLE")
 	private String style;
 
-	@Column(name = "TARGETMETHODNAME", nullable = true)
+	@Column(name = "TARGETMETHODNAME")
 	private String targetMethodName;
 
-	@Column(name = "TARGETOBJECTURI", nullable = true)
+	@Column(name = "TARGETOBJECTURI")
 	private String targetObjectURI;
 
-	@Column(name = "TARGETURL", nullable = true)
+	@Column(name = "TARGETURL")
 	private String targetURL;
 
-	@Column(name = "WSDL_AGREGADOR", nullable = true)
+	@Column(name = "WSDL_AGREGADOR")
 	private String wsdl_Agregador;
 
-	@Column(name = "USUARIO", nullable = true)
+	@Column(name = "USUARIO")
 	private String usuario;
 
-	@Column(name = "CONTRASENIA", nullable = true)
+	@Column(name = "CONTRASENIA")
 	private String contrasenia;
 
-	@Column(name = "SERVICE_NAME", nullable = true)
+	@Column(name = "SERVICE_NAME")
 	private String serviceName;
 
 	@OneToMany(fetch = FetchType.EAGER, mappedBy = "metodo", cascade = { CascadeType.ALL })
@@ -72,13 +83,13 @@ public class Metodos {
 	private Set<Respuesta> respuestas;
 
 	@OneToMany(fetch = FetchType.LAZY, mappedBy = "metodo", cascade = { CascadeType.ALL })
-	private Set<Depuracion_bck> depuraciones;
+	private Set<LogDepuracion> depuraciones;
 
-	public int getId() {
+	public Integer getId() {
 		return id;
 	}
 
-	public void setId(int id) {
+	public void setId(Integer id) {
 		this.id = id;
 	}
 
@@ -212,17 +223,24 @@ public class Metodos {
 		this.respuestas = respuestas;
 	}
 
-	public Set<Depuracion_bck> getDepuraciones() {
+	public Set<LogDepuracion> getDepuraciones() {
 		return depuraciones;
 	}
 
-	public void setDepuraciones(Set<Depuracion_bck> depuraciones) {
+	public void setDepuraciones(Set<LogDepuracion> depuraciones) {
 		this.depuraciones = depuraciones;
 	}
 
+	public String getEndPoint() {
+		return endPoint;
+	}
+
+	public void setEndPoint(String endPoint) {
+		this.endPoint = endPoint;
+	}
+	
 	@Override
 	public String toString() {
 		return "Metodos [id=" + id + ", nombre=" + nombre + "]";
 	}
-
 }

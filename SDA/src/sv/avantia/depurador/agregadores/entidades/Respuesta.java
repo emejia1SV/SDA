@@ -1,20 +1,29 @@
 package sv.avantia.depurador.agregadores.entidades;
 
+import java.io.Serializable;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 
-@Entity(name = "AGR_RESPUESTAS")
-@Table(name = "AGR_RESPUESTAS", uniqueConstraints = { @UniqueConstraint(columnNames = { "ID" }) })
-public class Respuesta {
+@Entity(name = "SDA_RESPUESTAS")
+@Table(name = "SDA_RESPUESTAS", uniqueConstraints = { @UniqueConstraint(columnNames = { "ID" }) })
+public class Respuesta implements Serializable {
 
+	private static final long serialVersionUID = 1L;
+
+	@GeneratedValue(strategy=GenerationType.AUTO, generator="Seq_Gen_Respuesta")
+    @SequenceGenerator(name="Seq_Gen_Respuesta", sequenceName="SQ_SDA_RESPUESTAS")
 	@Id
 	@Column(name = "ID", nullable = false)
-	private int id;
+	private Integer id;
 
 	@Column(name = "TIPO", nullable = false)
 	private String tipo;
@@ -22,18 +31,15 @@ public class Respuesta {
 	@Column(name = "NOMBRE", nullable = false)
 	private String nombre;
 
-	/*@Column(name = "POSICION", nullable = false)
-	private int posicion;*/
-
 	@ManyToOne
 	@JoinColumn(name = "ID_METODO")
 	private Metodos metodo;
 
-	public int getId() {
+	public Integer getId() {
 		return id;
 	}
 
-	public void setId(int id) {
+	public void setId(Integer id) {
 		this.id = id;
 	}
 
@@ -65,5 +71,4 @@ public class Respuesta {
 	public String toString() {
 		return "Respuesta [id=" + id + ", nombre=" + nombre + "]";
 	}
-
 }

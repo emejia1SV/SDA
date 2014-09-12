@@ -67,7 +67,7 @@ public class Iniciar {
 	public static void obtenerNumeros(){
 		BdEjecucion ejecucion = new BdEjecucion();
 		try {
-			moviles = (List<String>) ejecucion.listData("select b.numero from CLIENTE_TEL b where b.id='287040'");
+			moviles =  (List<String>)(List<?>) ejecucion.listData("select b.numero from CLIENTE_TEL b where b.id='287040'");
 		} finally{
 			ejecucion = null;
 		}
@@ -78,7 +78,7 @@ public class Iniciar {
 	public static List<Pais> obtenerParmetrizacion(){
 		BdEjecucion ejecucion = new BdEjecucion();
 		try {
-			return (List<Pais>) ejecucion.listData("FROM AGR_PAISES WHERE ID = 2");
+			return (List<Pais>)(List<?>) ejecucion.listData("FROM SDA_PAISES WHERE ID = 2");
 		} finally{
 			ejecucion = null;
 		}

@@ -167,10 +167,12 @@ public class TestHibernate {
 	 */	
 	public static void main(String[] args) {
 		try {
-			obtenerPaises();
-			//testDeleteCascade();
-			//testSMTSave();
-			//datos();
+			Pais pais = new Pais();
+			pais.setCodigo("510");
+			pais.setNombre("Honduras Test");
+			pais.setEstado(1);
+			
+			createData(pais);
 			
 			if(SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().isOpen())
 	        	SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().close();
@@ -195,7 +197,7 @@ public class TestHibernate {
 		BdEjecucion ejecucion = new BdEjecucion();
 		try {
 			@SuppressWarnings("unchecked")
-			List<String> datos = ((List<String>) ejecucion.listData("select b.numero from CLIENTE_TEL b where b.id='287040'"));
+			List<String> datos = (List<String>)(List<?>) ejecucion.listData("select b.numero from CLIENTE_TEL b where b.id='287040'");
 			for (int i = 0; i < datos.size(); i++) {
 				System.out.println(datos.get(i));
 			}
@@ -206,7 +208,7 @@ public class TestHibernate {
 	
 	public static void obtenerParmetrizacion(){
 		@SuppressWarnings({ "unchecked", "unused" })
-		List<Pais> datos = listData("FROM AGR_PAISES");
+		List<Pais> datos = listData("FROM SDA_PAISES");
 		SessionFactoryUtil.closeSession();
 
 	}
@@ -225,7 +227,7 @@ public class TestHibernate {
 	
 	public static void obtenerPaises(){
 		@SuppressWarnings("unchecked")
-		List<Pais> pais = listData("FROM AGR_PAISES");
+		List<Pais> pais = listData("FROM SDA_PAISES");
 		
 		for (int i = 0; i < pais.size(); i++) {
 			System.out.println(pais.get(i).getNombre());
@@ -257,7 +259,7 @@ public class TestHibernate {
 	
 	@SuppressWarnings("unchecked")
 	public static void test1(){
-		String query = "FROM AGR_AGREGADORES";
+		String query = "FROM SDA_AGREGADORES";
 		
 		Agregadores obj = new Agregadores();
 	    obj.setEstado(1);
@@ -718,17 +720,15 @@ public class TestHibernate {
 		}
 	  }
 	
-	private static Integer maxValue(Object obj){
+	private static Integer maxValue(Agregadores obj){
 		Session session =  SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession();
 		try {
 			session.beginTransaction();
-			
-			Criteria criteria = session
-			    .createCriteria(obj.getClass())
-			    .setProjection(Projections.max("ID"));
+			System.out.println("criteria.....");
+			Criteria criteria = session.createCriteria(obj.getClass()).setProjection(Projections.max("ID"));
+			System.out.println(criteria.uniqueResult());
 			Integer dato = (Integer)criteria.uniqueResult();
-			session.getTransaction().commit();
-			
+			session.getTransaction().commit();			
 			return dato;
 		} catch (RuntimeException e) {
 			e.printStackTrace();

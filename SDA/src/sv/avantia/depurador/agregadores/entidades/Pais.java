@@ -1,23 +1,31 @@
 package sv.avantia.depurador.agregadores.entidades;
 
+import java.io.Serializable;
 import java.util.Set;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
+import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 
-@Entity(name = "AGR_PAISES")
-@Table(name = "AGR_PAISES", uniqueConstraints = { @UniqueConstraint(columnNames = { "ID" }) })
-public class Pais {
+@Entity(name = "SDA_PAISES")
+@Table(name = "SDA_PAISES", uniqueConstraints = { @UniqueConstraint(columnNames = { "ID" }) })
+public class Pais implements Serializable {
 
-	@Id
+	private static final long serialVersionUID = 1L;
+
+    @Id
+    @GeneratedValue(strategy=GenerationType.AUTO, generator="Seq_Gen_Pais")
+    @SequenceGenerator(name="Seq_Gen_Pais", sequenceName="SQ_SDA_PAIS")
 	@Column(name = "ID", nullable = false)
-	private int id;
+	private Integer id;
 
 	@Column(name = "PAIS", nullable = false)
 	private String nombre;
@@ -26,16 +34,16 @@ public class Pais {
 	private String codigo;
 
 	@Column(name = "STATUS", nullable = false)
-	private int estado;
+	private Integer estado;
 
 	@OneToMany(fetch = FetchType.EAGER, mappedBy="pais", cascade={CascadeType.ALL})
 	private Set<Agregadores> agregadores;
 
-	public int getId() {
+	public Integer getId() {
 		return id;
 	}
 
-	public void setId(int id) {
+	public void setId(Integer id) {
 		this.id = id;
 	}
 
@@ -55,11 +63,11 @@ public class Pais {
 		this.codigo = codigo;
 	}
 
-	public int getEstado() {
+	public Integer getEstado() {
 		return estado;
 	}
 
-	public void setEstado(int estado) {
+	public void setEstado(Integer estado) {
 		this.estado = estado;
 	}
 
@@ -75,5 +83,4 @@ public class Pais {
 	public String toString() {
 		return "Pais [id=" + this.id + ", nombre=" + this.nombre + "]";
 	}
-
 }

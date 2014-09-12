@@ -1,28 +1,36 @@
 package sv.avantia.depurador.agregadores.entidades;
 
+import java.io.Serializable;
 import java.util.Date;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 
-@Entity(name = "AGR_DEPURACION_BCK")
-@Table(name = "AGR_DEPURACION_BCK", uniqueConstraints = { @UniqueConstraint(columnNames = { "ID" }) })
-public class Depuracion_bck {
+@Entity(name = "SDA_LOG_DEPURACION")
+@Table(name = "SDA_LOG_DEPURACION", uniqueConstraints = { @UniqueConstraint(columnNames = { "ID" }) })
+public class LogDepuracion implements Serializable {
 
+	private static final long serialVersionUID = 1L;
+
+	@GeneratedValue(strategy=GenerationType.AUTO, generator="Seq_Gen_Log")
+    @SequenceGenerator(name="Seq_Gen_Log", sequenceName="SQ_SDA_DEPURACION_LOG")
 	@Id
 	@Column(name = "ID", nullable = false)
-	private int id;
+	private Integer id;
 
 	@Column(name = "NUMERO", nullable = false)
 	private String numero;
 
 	@Column(name = "ID_ERROR", nullable = false)
-	private int idError;
+	private Integer idError;
 
 	@Column(name = "FECHA_PROCESAMIENTO", nullable = false)
 	private Date fechaProcesamiento;
@@ -31,11 +39,11 @@ public class Depuracion_bck {
 	@JoinColumn(name = "ID_METODO_PROCESADO")
 	private Metodos metodo;
 
-	public int getId() {
+	public Integer getId() {
 		return id;
 	}
 
-	public void setId(int id) {
+	public void setId(Integer id) {
 		this.id = id;
 	}
 
@@ -47,11 +55,11 @@ public class Depuracion_bck {
 		this.numero = numero;
 	}
 
-	public int getIdError() {
+	public Integer getIdError() {
 		return idError;
 	}
 
-	public void setIdError(int idError) {
+	public void setIdError(Integer idError) {
 		this.idError = idError;
 	}
 
@@ -75,5 +83,4 @@ public class Depuracion_bck {
 	public String toString() {
 		return "Depuracion_bck [id=" + id + "]";
 	}
-
 }
