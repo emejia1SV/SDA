@@ -92,7 +92,7 @@ public class ClientSSL {
 	 *            - {@link String}
 	 * @return {@link Void}
 	 * */
-	public static void talk(String urlval, String inputMessage) {
+	public static void talk(String urlEndpoint, String inputMessage) {
 		try {
 			MessageFactory messageFactory = MessageFactory.newInstance();
 			SOAPMessage msg = messageFactory.createMessage(
@@ -107,7 +107,7 @@ public class ClientSSL {
 			doTrustToCertificates();
 
 			// SOAPMessage rp = conn.call(msg, urlval);
-			SOAPMessage rp = sendMessage(msg, urlval);
+			SOAPMessage rp = sendMessage(msg, urlEndpoint);
 
 			// View the output
 			System.out.println("Soap response");

@@ -75,6 +75,9 @@ public class Metodos implements Serializable{
 
 	@Column(name = "SERVICE_NAME")
 	private String serviceName;
+	
+	@Column(name = "SEGURIDAD")
+	private Integer seguridad;
 
 	@OneToMany(fetch = FetchType.EAGER, mappedBy = "metodo", cascade = { CascadeType.ALL })
 	private Set<Parametros> parametros;
@@ -237,6 +240,14 @@ public class Metodos implements Serializable{
 
 	public void setEndPoint(String endPoint) {
 		this.endPoint = endPoint;
+	}
+	
+	public Integer getSeguridad() {
+		return seguridad;
+	}
+
+	public void setSeguridad(Integer seguridad) {
+		this.seguridad = seguridad;
 	}
 	
 	@Override

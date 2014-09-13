@@ -49,7 +49,7 @@ public class Cliente {
 			
 			ParametrizarServicio servicio = new ParametrizarServicio();
 			//agregador = wsdlparser.getServicesInfoFromFile("C:/Users/Edwin/Documents/documentacion Agregadores claro/SMT wsdl/WSDL Black Gray List_RolandoSkype/WSDL Black Gray List/SMT_blackgray_service_1_0_1.wsdl", agregador);
-			agregador = servicio.getServicesInfo("http://mobilemedios.com/wsmedios/clarogt/wsCLAGT.asmx?WSDL", agregador);
+			agregador = servicio.getServicesInfo("http://192.168.0.100:8090/axis2/services/Servicio_1?wsdl", agregador);
 			
 			for (Metodos operation : agregador.getMetodos()) {
 				System.out.println("Operation Name: " 		+ operation.toString());

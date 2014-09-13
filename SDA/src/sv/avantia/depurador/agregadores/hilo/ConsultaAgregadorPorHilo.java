@@ -1,22 +1,55 @@
 package sv.avantia.depurador.agregadores.hilo;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.HashMap;
 import java.util.List;
 
-import com.cladonia.xml.webservice.wsdl.OperationInfo;
-import com.cladonia.xml.webservice.wsdl.ServiceInfo;
-import com.cladonia.xml.webservice.wsdl.WSDLException;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import javax.xml.soap.MessageFactory;
+import javax.xml.soap.MimeHeaders;
+import javax.xml.soap.SOAPConnection;
+import javax.xml.soap.SOAPConnectionFactory;
+import javax.xml.soap.SOAPException;
+import javax.xml.soap.SOAPMessage;
+import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMResult;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import sv.avantia.depurador.agregadores.entidades.Agregadores;
 import sv.avantia.depurador.agregadores.entidades.Metodos;
 import sv.avantia.depurador.agregadores.entidades.Parametros;
 import sv.avantia.depurador.agregadores.ws.cliente.Cliente;
 
+import com.cladonia.xml.webservice.soap.SOAPClient;
+import com.cladonia.xml.webservice.wsdl.WSDLException;
+import com.cladonia.xml.webservice.wsdl.XMLSupport;
+
 public class ConsultaAgregadorPorHilo extends Thread {
 
 	private List<String> moviles = new ArrayList<String>();
 	private Agregadores agregador;
+	private HashMap<String, String> parametrosData = new HashMap<String, String>();
 
 	public void run() {
 		// consultar un agregador WS
@@ -29,25 +62,35 @@ public class ConsultaAgregadorPorHilo extends Thread {
 		}
 	}
 	
-	@SuppressWarnings("static-access")
-	private void procesarServiciosWeb() throws WSDLException{
-		Cliente cliente = new Cliente();
-		if (getAgregador() != null) {
-			System.out.println("procesar agregador...");
-			if (getAgregador().getMetodos() != null) {
+	private void procesarServiciosWeb() throws WSDLException
+	{		
+		if (getAgregador() != null) 
+		{
+			if (getAgregador().getMetodos() != null) 
+			{
 				System.out.println("procesar metodos...");
-				for (Metodos metodo : getAgregador().getMetodos()) {
-					if (metodo.getParametros() != null) {
+				for (Metodos metodo : getAgregador().getMetodos()) 
+				{
+					if (metodo.getParametros() != null) 
+					{
 						
 						System.out.println("procesando ");
-						for (String movil : moviles) {	
+						for (String movil : moviles) 
+						{	
 							for (Parametros parametro : metodo.getParametros()) 
 							{
 								System.out.println("Remplazando " + parametro.getNombre());
 								metodo.setInputMessageText(metodo.getInputMessageText().replaceAll(parametro.getNombre(), movil));									
 							}
-							System.out.println("getInputMessageText: "	+ metodo.getInputMessageText());
-							System.out.println("SOAP response: \n"+cliente.invokeOperation(metodo));	
+
+							if (metodo.getSeguridad().equals(0)) {
+								System.out.println("getInputMessageText: "	+ metodo.getInputMessageText());
+								System.out.println("SOAP response: \n"+ invokeOperation(metodo, null));
+							}
+							
+							if (metodo.getSeguridad().equals(1)) {
+								talk(metodo.getEndPoint(), metodo.getInputMessageText());
+							}
 						}
 					}
 				}
@@ -55,53 +98,6 @@ public class ConsultaAgregadorPorHilo extends Thread {
 		}
 	}
 
-	/**
-	 * 
-	 * @author Edwin Mejia - Avantia Consultores
-	 * @throws WSDLException 
-	 * */
-	@SuppressWarnings("unused")
-	private void obtenerServicios(String wsdl) throws WSDLException{
-		Cliente wsdlparser = new Cliente();
-		// http://www.xignite.com/xquotes.asmx?WSDL
-		List<?> services = null;//wsdlparser.getServicesInfo(wsdl, null);
-
-		// process objects built from the binding information
-		@SuppressWarnings("null")
-		Iterator<?> servicesIter = services.iterator();
-		while (servicesIter.hasNext()) {
-			ServiceInfo service = (ServiceInfo) servicesIter.next();
-			System.out.println("Service Name: " + service.getName());
-			System.out.println();
-
-			Iterator<?> operationsIter = service.getOperations();
-			while (operationsIter.hasNext()) {
-				OperationInfo operation = (OperationInfo) operationsIter.next();
-				
-				System.out.println("Invoking the following:");
-				System.out.println("Service Name: "+service.getName());
-				System.out.println("Operation Name: "+operation.toString());
-				System.out.println("Target URL: "+operation.getTargetURL());
-				System.out.println("SOAPAction: "+operation.getSoapActionURI());
-				System.out.println("SOAP request: \n"+operation.getInputMessageText());
-				System.out.println();
-				//System.out.println("SOAP response: \n"+wsdlparser.invokeOperation(operation));
-				
-				/*System.out.println("Operation Name: " 		+ operation.toString());
-				System.out.println("getInputMessageName: "	+ operation.getInputMessageName());
-				System.out.println("getInputMessageText: "	+ operation.getInputMessageText());
-				System.out.println("getNamespaceURI: "		+ operation.getNamespaceURI());
-				System.out.println("getSoapActionURI: "		+ operation.getSoapActionURI());
-				System.out.println("getStyle: " 			+ operation.getStyle());
-				System.out.println("getTargetMethodName: "	+ operation.getTargetMethodName());
-				System.out.println("getTargetObjectURI(): "	+ operation.getTargetObjectURI());
-				System.out.println("getTargetURL(): "		+ operation.getTargetURL());*/
-				System.out.println();
-
-			}
-		}
-	}
-	
 	public List<String> getMoviles() {
 		return moviles;
 	}
@@ -221,6 +217,209 @@ public class ConsultaAgregadorPorHilo extends Thread {
 			e.printStackTrace();
 		}
 	}*/
-	
+	//*********************************************************************************************************************************/
+	//		cliente SIN SSL es un cliente normal sin seguridad
+	//*********************************************************************************************************************************/
 
+	/**
+	 * Invoke a SOAP call passing in an operation instance and attachments
+	 *
+	 * @param operation The selected operation
+	 * @param attachements The required attachments
+	 *
+	 * @return The response SOAP Envelope as a String
+	 */
+	public static String invokeOperation(Metodos operation,File[] attachments)
+	throws WSDLException
+	{
+		try{
+		
+		Document docRequest = XMLSupport.parse(operation.getInputMessageText());
+
+		// create the saaj based soap client
+		SOAPClient client = new SOAPClient(docRequest);
+
+		// add any attachments if required
+		if (attachments != null)
+		{
+			client.addAttachments(attachments);
+		}
+
+		// set the SOAPAction
+		//System.out.println(operation.getSoapActionURI()); "loc:addGrayList"
+		client.setSOAPAction(operation.getSoapActionURI());
+
+		// get the url
+		//System.out.println(operation.getTargetURL());End point "https://hub.americamovil.com/sag/services/blackgrayService"
+		URL url = new URL(operation.getTargetURL());
+
+		// send the soap message
+		Document responseDoc = client.send(url);
+		
+		lecturaCompleta(responseDoc, "ns:return");
+       // returns just the soap envelope part of the message (i.e no returned attachements will be
+	   // seen)
+		return XMLSupport.prettySerialise(responseDoc);
+		
+		}
+		catch (Exception e)
+		{
+			// should log\trace this here
+			throw new WSDLException(e);
+		}
+	}
+	
+	//*********************************************************************************************************************************/
+	//		cliente SSL
+	//*********************************************************************************************************************************/
+
+	/**
+	 * Metodo que nos carga un certificado digital
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @return {@link Void}
+	 * */
+	static public void doTrustToCertificates() throws Exception {
+		// Security.addProvider(new com.sun.net.ssl.internal.ssl.Provider());
+		TrustManager[] trustAllCerts = new TrustManager[] { 
+				new X509TrustManager() {
+					public X509Certificate[] getAcceptedIssuers() {
+						return null;
+					}
+		
+					public void checkServerTrusted(X509Certificate[] certs,
+							String authType) throws CertificateException {
+						return;
+					}
+		
+					public void checkClientTrusted(X509Certificate[] certs,
+							String authType) throws CertificateException {
+						return;
+					}
+				} 
+		};
+
+		SSLContext sc = SSLContext.getInstance("SSL");
+		sc.init(null, trustAllCerts, new SecureRandom());
+		HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+		HostnameVerifier hv = new HostnameVerifier() {
+			public boolean verify(String urlHostName, SSLSession session) {
+				if (!urlHostName.equalsIgnoreCase(session.getPeerHost())) {
+					System.out.println("Warning: URL host '" + urlHostName	+ "' is different to SSLSession host '"	+ session.getPeerHost() + "'.");
+				}
+				return true;
+			}
+		};
+		HttpsURLConnection.setDefaultHostnameVerifier(hv);
+	}
+	
+	/**
+	 * Metodo que realiza el envio del archivo request y espera el archivo
+	 * response para el metodo web
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @param urlval
+	 *            - {@link String}
+	 * @param inputMessage
+	 *            - {@link String}
+	 * @return {@link Void}
+	 * */
+	public static void talk(String urlEndpoint, String inputMessage) {
+		try {
+			MessageFactory messageFactory = MessageFactory.newInstance();
+			SOAPMessage msg = messageFactory.createMessage(
+					new MimeHeaders(),
+					new ByteArrayInputStream(inputMessage.getBytes(Charset.forName("UTF-8"))));
+
+			// View input
+			System.out.println("Soap request:");
+			msg.writeTo(System.out);
+
+			// Trust to certificates
+			doTrustToCertificates();
+
+			// SOAPMessage rp = conn.call(msg, urlval);
+			SOAPMessage rp = sendMessage(msg, urlEndpoint);
+
+			// View the output
+			System.out.println("Soap response");
+			rp.writeTo(System.out);
+			
+			Document doc = toDocument(rp);
+			
+			lecturaCompleta(doc, "ns1:resultCode");
+		} 
+		catch (Exception e) 
+		{
+			System.out.println(e.getMessage());
+		}
+	}
+	
+	private static Document toDocument(SOAPMessage soapMsg)
+			throws TransformerConfigurationException, TransformerException,
+			SOAPException, IOException {
+		Source src = soapMsg.getSOAPPart().getContent();
+		TransformerFactory tf = TransformerFactory.newInstance();
+		Transformer transformer = tf.newTransformer();
+		DOMResult result = new DOMResult();
+		transformer.transform(src, result);
+		return (Document) result.getNode();
+	}
+	
+	private static void lecturaCompleta(Document doc, String nodeNameToReader) {
+		doc.getDocumentElement().normalize();
+		if (doc.getDocumentElement().hasChildNodes()) {
+			NodeList nodeList = doc.getDocumentElement().getChildNodes();
+			readerList(nodeList, nodeNameToReader);
+		}
+	}
+
+	private static void readerList(NodeList nodeList, String nodeNameToReader) {
+		for (int i = 0; i < nodeList.getLength(); i++) {
+			Node node = nodeList.item(i);
+			if (node.getNodeType() == Node.ELEMENT_NODE) {
+				if(node.getNodeName().equals(nodeNameToReader))
+					System.out.println(node.getTextContent());//esto debere guardar
+				
+				if (node.hasChildNodes())
+					readerList(node.getChildNodes(), nodeNameToReader);
+			}
+		}
+	}
+
+	/**
+	 * Metodo que envia realiza la conexion al servicio web e invoca al metodo a
+	 * ejecutar
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @param message
+	 *            - {@link SOAPMessage}
+	 * @param endPoint
+	 *            - {@link String}
+	 * @return {@link SOAPMessage}
+	 * */
+	static public SOAPMessage sendMessage(SOAPMessage message, String endPoint)
+			throws MalformedURLException, SOAPException {
+		SOAPMessage result = null;
+		if (endPoint != null && message != null) {
+			URL url = new URL(endPoint);
+			SOAPConnectionFactory scf = SOAPConnectionFactory.newInstance();
+			SOAPConnection connection = null;
+			long time = System.currentTimeMillis();
+			try {
+				connection = scf.createConnection(); // point-to-point connection
+				result = connection.call(message, url);
+			} finally {
+				if (connection != null) {
+					try {
+						connection.close();
+					} catch (SOAPException soape) {
+						System.out.print("Can't close SOAPConnection:" + soape);
+					}
+				}
+			}
+			System.out.println("Respuesta en " + (System.currentTimeMillis() - time));
+		}
+		return result;
+	}	
 }
