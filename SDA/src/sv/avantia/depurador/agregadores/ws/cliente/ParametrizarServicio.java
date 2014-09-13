@@ -38,6 +38,7 @@ import org.exolab.castor.xml.schema.ElementDecl;
 import org.exolab.castor.xml.schema.Group;
 import org.exolab.castor.xml.schema.Particle;
 import org.exolab.castor.xml.schema.Schema;
+
 import org.exolab.castor.xml.schema.Structure;
 import org.exolab.castor.xml.schema.XMLType;
 import org.w3c.dom.Document;
@@ -69,7 +70,18 @@ public class ParametrizarServicio {
 	private Document document = null;
 
 	// schema target namespace
-	private String schemaTargetNamespace = null;	
+	private String schemaTargetNamespace = null;
+	
+	public ParametrizarServicio() throws WSDLException
+	{
+		try{
+			wsdlFactory = WSDLFactory.newInstance();
+		}
+		catch (javax.wsdl.WSDLException e)
+		{
+			throw new WSDLException(e.toString());
+		}
+	}
 	
 	/**
 	 * Builds a List of ServiceInfo components for each Service defined in a
@@ -158,8 +170,8 @@ public class ParametrizarServicio {
 			// create the WSDL Reader object
 			WSDLReader reader = wsdlFactory.newWSDLReader();
 
-			reader.setFeature("javax.wsdl.verbose", false);
-			reader.setFeature("javax.wsdl.importDocuments", true);
+			//reader.setFeature("javax.wsdl.verbose", false);
+			//reader.setFeature("javax.wsdl.importDocuments", true);
             
 			// read the WSDL and get the top-level Definition object
 			Definition def = reader.readWSDL(null, wsdl);
@@ -225,11 +237,11 @@ public class ParametrizarServicio {
 			// create the WSDL Reader object
 			WSDLReader reader = wsdlFactory.newWSDLReader();
 
-			//reader.setFeature("javax.wsdl.verbose", false);
-			//reader.setFeature("javax.wsdl.importDocuments", true);
+			reader.setFeature("javax.wsdl.verbose", false);
+			reader.setFeature("javax.wsdl.importDocuments", true);
             
 			// read the WSDL and get the top-level Definition object
-			Definition def = reader.readWSDL(null, wsdlURI);
+			Definition def = reader.readWSDL(wsdlURI);
 
 			// create a castor schema from the types element defined in WSDL
 			// this method will return null if there are types defined in the WSDL
@@ -329,8 +341,14 @@ public class ParametrizarServicio {
 
 		try 
 		{
+			System.out.println(schemaElement.toString());
 			schema = XMLSupport.convertElementToSchema((Element)schemaElement);
-			schemaTargetNamespace = schema.getTargetNamespace();
+			if(schema!=null){
+				schemaTargetNamespace = schema.getTargetNamespace();
+			}else{
+				System.out.println("El Schema nos regreso nulo");
+			}
+			
 		}
 		catch (Exception e) 
 		{

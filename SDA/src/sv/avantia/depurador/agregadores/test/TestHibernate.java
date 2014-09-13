@@ -10,6 +10,7 @@ import org.hibernate.criterion.Projections;
 
 import sv.avantia.depurador.agregadores.entidades.Agregadores;
 import sv.avantia.depurador.agregadores.entidades.Clientes_Tel;
+import sv.avantia.depurador.agregadores.entidades.LogDepuracion;
 import sv.avantia.depurador.agregadores.entidades.Metodos;
 import sv.avantia.depurador.agregadores.entidades.Pais;
 import sv.avantia.depurador.agregadores.entidades.Parametros;
@@ -167,12 +168,11 @@ public class TestHibernate {
 	 */	
 	public static void main(String[] args) {
 		try {
-			Pais pais = new Pais();
-			pais.setCodigo("510");
-			pais.setNombre("Honduras Test");
-			pais.setEstado(1);
 			
-			createData(pais);
+			
+			load100();
+			load200();
+			load300();
 			
 			if(SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().isOpen())
 	        	SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().close();
@@ -191,6 +191,40 @@ public class TestHibernate {
 		}
 		
 		
+	}
+	
+	
+	private static void load100() {
+		
+		
+		for (int i = 0; i < 100; i++) {
+			LogDepuracion depuracion = new LogDepuracion();
+			
+			depuracion.setNumero(String.valueOf(i));
+			createData(depuracion);
+			
+		}
+		SessionFactoryUtil.closeSession();
+	}
+
+	private static void load200() {
+		for (int i = 101; i < 200; i++) {
+			LogDepuracion depuracion = new LogDepuracion();
+			
+			depuracion.setNumero(String.valueOf(i));
+			createData(depuracion);
+		}
+		SessionFactoryUtil.closeSession();
+	}
+
+	private static void load300() {
+		for (int i = 201; i < 300; i++) {
+			LogDepuracion depuracion = new LogDepuracion();
+			
+			depuracion.setNumero(String.valueOf(i));
+			createData(depuracion);
+		}
+		SessionFactoryUtil.closeSession();
 	}
 	
 	public static void datos(){

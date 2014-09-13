@@ -8,7 +8,11 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import sv.avantia.depurador.agregadores.entidades.Agregadores;
 import sv.avantia.depurador.agregadores.entidades.Metodos;
+import sv.avantia.depurador.agregadores.entidades.Pais;
+import sv.avantia.depurador.agregadores.entidades.Parametros;
+import sv.avantia.depurador.agregadores.jdbc.SessionFactoryUtil;
 
 import com.cladonia.xml.webservice.soap.SOAPClient;
 import com.cladonia.xml.webservice.wsdl.WSDLException;
@@ -19,6 +23,59 @@ public class Cliente {
 	/* Get actual class name to be printed on */
 	public static Logger logger = Logger.getLogger("avantiaLogger");
 	 
+	public static void main(String[] args) {
+		prueba();
+	}
+	
+	public static void prueba(){
+		try 
+		{
+			// nueva prueba
+			Pais pais = new Pais();
+			pais.setId(2);
+			pais.setCodigo("502");
+			pais.setNombre("Guatemala");
+			pais.setEstado(1);
+			
+			//createData(pais);
+			
+			Agregadores agregador = new Agregadores();
+			agregador.setEstado(1);
+			agregador.setPais(pais);
+			agregador.setId(5);
+			agregador.setNombre_agregador("SMT");
+			
+			//createData(agregador);
+			
+			ParametrizarServicio servicio = new ParametrizarServicio();
+			//agregador = wsdlparser.getServicesInfoFromFile("C:/Users/Edwin/Documents/documentacion Agregadores claro/SMT wsdl/WSDL Black Gray List_RolandoSkype/WSDL Black Gray List/SMT_blackgray_service_1_0_1.wsdl", agregador);
+			agregador = servicio.getServicesInfo("http://mobilemedios.com/wsmedios/clarogt/wsCLAGT.asmx?WSDL", agregador);
+			
+			for (Metodos operation : agregador.getMetodos()) {
+				System.out.println("Operation Name: " 		+ operation.toString());
+				System.out.println("getInputMessageName: "	+ operation.getInputMessageName());
+				System.out.println("getInputMessageText: "	+ operation.getInputMessageText());
+				System.out.println("getNamespaceURI: "		+ operation.getNamespaceURI());
+				System.out.println("getSoapActionURI: "		+ operation.getSoapActionURI());
+				System.out.println("getStyle: " 			+ operation.getStyle());
+				System.out.println("getTargetMethodName: "	+ operation.getTargetMethodName());
+				System.out.println("getTargetObjectURI(): "	+ operation.getTargetObjectURI());
+				System.out.println("getTargetURL(): "		+ operation.getTargetURL());
+				System.out.println();
+				
+				
+				for (Parametros param : operation.getParametros()) {
+					System.out.println(param.getNombre());
+					System.out.println(param.getTipo());
+				}
+				
+				System.out.println("SOAP response: \n"+invokeOperation(operation));	
+			}
+			SessionFactoryUtil.closeSession();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 	
 	/**
 	 * Invoke a SOAP call passing in an operation instance
@@ -166,55 +223,7 @@ public class Cliente {
 		test1();
 	}
 	
-	public static void prueba(){
-		try 
-		{
-			// nueva prueba
-			Pais pais = new Pais();
-			pais.setId(2);
-			pais.setCodigo("502");
-			pais.setNombre("Guatemala");
-			pais.setEstado(1);
-			
-			//createData(pais);
-			
-			Agregadores agregador = new Agregadores();
-			agregador.setEstado(1);
-			agregador.setPais(pais);
-			agregador.setId(5);
-			agregador.setNombre_agregador("SMT");
-			
-			//createData(agregador);
-			
-			Cliente wsdlparser = new Cliente();
-			//agregador = wsdlparser.getServicesInfoFromFile("C:/Users/Edwin/Documents/documentacion Agregadores claro/SMT wsdl/WSDL Black Gray List_RolandoSkype/WSDL Black Gray List/SMT_blackgray_service_1_0_1.wsdl", agregador);
-			//agregador = wsdlparser.getServicesInfo("http://192.168.0.100:8090/axis2/services/pruebaWsCadena?wsdl", agregador);
-			
-			for (Metodos operation : agregador.getMetodos()) {
-				System.out.println("Operation Name: " 		+ operation.toString());
-				System.out.println("getInputMessageName: "	+ operation.getInputMessageName());
-				System.out.println("getInputMessageText: "	+ operation.getInputMessageText());
-				System.out.println("getNamespaceURI: "		+ operation.getNamespaceURI());
-				System.out.println("getSoapActionURI: "		+ operation.getSoapActionURI());
-				System.out.println("getStyle: " 			+ operation.getStyle());
-				System.out.println("getTargetMethodName: "	+ operation.getTargetMethodName());
-				System.out.println("getTargetObjectURI(): "	+ operation.getTargetObjectURI());
-				System.out.println("getTargetURL(): "		+ operation.getTargetURL());
-				System.out.println();
-				
-				
-				for (Parametros param : operation.getParametros()) {
-					System.out.println(param.getNombre());
-					System.out.println(param.getTipo());
-				}
-				
-				System.out.println("SOAP response: \n"+invokeOperation(operation));	
-			}
-			SessionFactoryUtil.closeSession();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+	
 	
 	@SuppressWarnings("static-access")
 	public static void test2() throws WSDLException{

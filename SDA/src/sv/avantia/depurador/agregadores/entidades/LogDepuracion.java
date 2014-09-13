@@ -26,13 +26,13 @@ public class LogDepuracion implements Serializable {
 	@Column(name = "ID", nullable = false)
 	private Integer id;
 
-	@Column(name = "NUMERO", nullable = false)
+	@Column(name = "NUMERO")
 	private String numero;
 
-	@Column(name = "ID_ERROR", nullable = false)
+	@Column(name = "ID_ERROR")
 	private Integer idError;
 
-	@Column(name = "FECHA_PROCESAMIENTO", nullable = false)
+	@Column(name = "FECHA_PROCESAMIENTO")
 	private Date fechaProcesamiento;
 
 	@ManyToOne

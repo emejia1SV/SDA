@@ -20,10 +20,10 @@ import javax.persistence.UniqueConstraint;
 public class Pais implements Serializable {
 
 	private static final long serialVersionUID = 1L;
-
-    @Id
-    @GeneratedValue(strategy=GenerationType.AUTO, generator="Seq_Gen_Pais")
-    @SequenceGenerator(name="Seq_Gen_Pais", sequenceName="SQ_SDA_PAIS")
+	
+	@Id
+	@SequenceGenerator(name="Seq_Gen_Pais", sequenceName="SQ_SDA_PAIS")
+    @GeneratedValue(strategy=GenerationType.SEQUENCE, generator="Seq_Gen_Pais")
 	@Column(name = "ID", nullable = false)
 	private Integer id;
 

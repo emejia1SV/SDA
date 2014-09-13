@@ -1,5 +1,7 @@
 package sv.avantia.depurador.agregadores.entidades;
 
+import java.io.Serializable;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -8,7 +10,9 @@ import javax.persistence.UniqueConstraint;
 
 @Entity(name = "CLIENTE_TEL")
 @Table(name = "CLIENTE_TEL", uniqueConstraints = { @UniqueConstraint(columnNames = { "ID" }) })
-public class Clientes_Tel {
+public class Clientes_Tel implements Serializable {
+
+	private static final long serialVersionUID = 1L;
 
 	@Id
 	@Column(name = "ID", nullable = false)

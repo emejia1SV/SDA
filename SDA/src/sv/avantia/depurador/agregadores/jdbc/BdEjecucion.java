@@ -1,5 +1,6 @@
 package sv.avantia.depurador.agregadores.jdbc;
 
+import java.io.Serializable;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -13,7 +14,9 @@ import org.hibernate.Session;
  * @author Edwin Mejia - Avantia Consultores
  * @version 1.0
  * */
-public class BdEjecucion {
+public class BdEjecucion implements Serializable {
+
+	private static final long serialVersionUID = 1L;
 
 	/**
 	 * Obtener el appender para la impresión en un archivo de LOG
