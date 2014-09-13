@@ -12,9 +12,19 @@
         <property name="hibernate.connection.password">avantia</property>
         <property name="hibernate.default_schema">avantia</property>
         
-        <!-- org.hibernate.HibernateException: No CurrentSessionContext configured! -->
+        <property name="hibernate.c3p0.min_size">5</property>
+        <property name="hibernate.c3p0.acquire_increment">1</property>
+        <property name="hibernate.c3p0.max_size">20</property>
+        <property name="hibernate.c3p0.timeout">300</property>
+        <property name="hibernate.c3p0.max_statements">50</property>
+        <property name="hibernate.c3p0.idle_test_period">3000</property>
+        <property name="hibernate.c3p0.validate">SELECT 1 FROM DUAL</property>
+        <property name="hibernate.show_sql">true</property>
+        <property name="hibernate.format_sql">true</property>
+        
+         <!-- org.hibernate.HibernateException: No CurrentSessionContext configured! -->
         <property name="hibernate.current_session_context_class">thread</property>
-         
+        
         <!-- Mapping with model class containing annotations -->
         <mapping class="sv.avantia.depurador.agregadores.entidades.Agregadores"  />
         <mapping class="sv.avantia.depurador.agregadores.entidades.Pais"  />
