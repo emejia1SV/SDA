@@ -78,5 +78,6 @@
 	<classpathentry kind="lib" path="C:/Users/Edwin/Desktop/apache-tomcat-7.0.54/lib/xngr-editor.jar"/>
 	<classpathentry kind="lib" path="C:/Users/Edwin/Desktop/apache-tomcat-7.0.54/lib/hibernate-c3p0-4.3.6.Final.jar"/>
 	<classpathentry kind="lib" path="C:/Users/Edwin/Desktop/apache-tomcat-7.0.54/lib/c3p0-0.9.1.2.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Edwin/Desktop/apache-tomcat-7.0.54/lib/jaxrpc-api.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
