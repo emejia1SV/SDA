@@ -14,6 +14,7 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
@@ -50,7 +51,7 @@ public class Metodos implements Serializable{
 	private String namespaceURI;
 
 	@Column(name = "SOAPACTIONURI")
-	private String SoapActionURI;
+	private String soapActionURI;
 
 	@Column(name = "STYLE")
 	private String style;
@@ -76,14 +77,23 @@ public class Metodos implements Serializable{
 	@Column(name = "SERVICE_NAME")
 	private String serviceName;
 	
+	@Column(name = "PASS")
+	private String pass;
+	
+	@Column(name = "ACCION")
+	private String accion;
+	
 	@Column(name = "SEGURIDAD")
 	private Integer seguridad;
+	
+	@Column(name = "ORDEN_EJECUCION")
+	private Integer ordenEjecucion;
 
 	@OneToMany(fetch = FetchType.EAGER, mappedBy = "metodo", cascade = { CascadeType.ALL })
 	private Set<Parametros> parametros;
 
-	@OneToMany(fetch = FetchType.LAZY, mappedBy = "metodo", cascade = { CascadeType.ALL })
-	private Set<Respuesta> respuestas;
+	@OneToOne(fetch = FetchType.LAZY, mappedBy = "metodo", cascade = { CascadeType.ALL })
+	private Respuesta respuesta;
 
 	@OneToMany(fetch = FetchType.LAZY, mappedBy = "metodo", cascade = { CascadeType.ALL })
 	private Set<LogDepuracion> depuraciones;
@@ -137,11 +147,11 @@ public class Metodos implements Serializable{
 	}
 
 	public String getSoapActionURI() {
-		return SoapActionURI;
+		return this.soapActionURI;
 	}
 
 	public void setSoapActionURI(String soapActionURI) {
-		SoapActionURI = soapActionURI;
+		this.soapActionURI = soapActionURI;
 	}
 
 	public String getStyle() {
@@ -218,12 +228,12 @@ public class Metodos implements Serializable{
 		this.parametros = parametros;
 	}
 
-	public Set<Respuesta> getRespuestas() {
-		return respuestas;
+	public Respuesta getRespuesta() {
+		return respuesta;
 	}
 
-	public void setRespuestas(Set<Respuesta> respuestas) {
-		this.respuestas = respuestas;
+	public void setRespuesta(Respuesta respuesta) {
+		this.respuesta = respuesta;
 	}
 
 	public Set<LogDepuracion> getDepuraciones() {
@@ -250,8 +260,33 @@ public class Metodos implements Serializable{
 		this.seguridad = seguridad;
 	}
 	
+	public Integer getOrdenEjecucion() {
+		return ordenEjecucion;
+	}
+
+	public void setOrdenEjecucion(Integer ordenEjecucion) {
+		this.ordenEjecucion = ordenEjecucion;
+	}
+	
+	public String getPass() {
+		return pass;
+	}
+
+	public void setPass(String pass) {
+		this.pass = pass;
+	}
+
+	public String getAccion() {
+		return accion;
+	}
+
+	public void setAccion(String accion) {
+		this.accion = accion;
+	}
+
 	@Override
 	public String toString() {
 		return "Metodos [id=" + id + ", nombre=" + nombre + "]";
 	}
+
 }

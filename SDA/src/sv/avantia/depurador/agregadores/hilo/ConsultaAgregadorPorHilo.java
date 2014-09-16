@@ -10,6 +10,7 @@ import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,14 +35,18 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMResult;
 
+import org.apache.log4j.Logger;
+import org.hibernate.HibernateException;
+import org.hibernate.Session;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import sv.avantia.depurador.agregadores.entidades.Agregadores;
+import sv.avantia.depurador.agregadores.entidades.LogDepuracion;
 import sv.avantia.depurador.agregadores.entidades.Metodos;
 import sv.avantia.depurador.agregadores.entidades.Parametros;
-import sv.avantia.depurador.agregadores.ws.cliente.Cliente;
+import sv.avantia.depurador.agregadores.jdbc.SessionFactoryUtil;
 import sv.avantia.depurador.agregadores.ws.cliente.WebServicesClient;
 
 import com.cladonia.xml.webservice.soap.SOAPClient;
@@ -54,6 +59,13 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	private Agregadores agregador;
 	private HashMap<String, String> parametrosData = new HashMap<String, String>();
 
+	/**
+	 * Obtener el appender para la impresión en un archivo de LOG
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * */
+	public static Logger logger = Logger.getLogger("avantiaLogger");
+	
 	public void run() {
 		// consultar un agregador WS
 		try {
@@ -67,37 +79,78 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	
 	private void procesarServiciosWeb() throws WSDLException
 	{		
+		System.out.println("Inicio Hilo por agregador " + getAgregador().getNombre_agregador());
 		if (getAgregador() != null) 
 		{
 			if (getAgregador().getMetodos() != null) 
 			{
-				System.out.println("procesar metodos...");
-				for (Metodos metodo : getAgregador().getMetodos()) 
+				for (String movil : moviles) 
+				{
+					invocacionPorNumero(movil);
+				}
+			}
+		}
+	}
+	
+	
+	/**
+	 * Ejecucines por numero de telefonia movil
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @param movil {@link String} numero de celular procesado
+	 * @return {@link String}
+	 * */
+	public synchronized void invocacionPorNumero(String movil) throws WSDLException{
+		//obtener el mensaje de input y modificar parametros
+		int ordenEjecucion = 1;
+		int tamanio = getAgregador().getMetodos().size();
+		while(true){
+			for (Metodos metodo : getAgregador().getMetodos()) 
+			{
+			
+				//porque voy a meter en un solo metodo el setear paraetros llenare esto aqui ahorita
+				getParametrosData().put("movil", movil);
+				getParametrosData().put("fecha", new Date().toString());
+				getParametrosData().put("accion", metodo.getAccion());
+				getParametrosData().put("operacion", metodo.getAccion());
+				getParametrosData().put("pass", metodo.getPass());
+				
+				// este seria primero ejecutar la baja de la lista negra
+				// luego consultar el historial de servicios 
+				// buscar en ese historial de servicios los que esten activos 
+				// y de esos activos seria ejecutar la baja para cada uno de dichos servicios
+				
+				//verificar esto en contra del tamaño de la lista  de metodo para hacer un bucle hasta ejecutarse en el orden deseado
+				if(ordenEjecucion == metodo.getOrdenEjecucion() && ordenEjecucion<= tamanio)
 				{
 					if (metodo.getParametros() != null) 
 					{
-						
-						System.out.println("procesando ");
-						for (String movil : moviles) 
-						{	
-							for (Parametros parametro : metodo.getParametros()) 
-							{
-								System.out.println("Remplazando " + parametro.getNombre());
-								metodo.setInputMessageText(metodo.getInputMessageText().replaceAll(parametro.getNombre(), movil));									
-							}
-
-							if (metodo.getSeguridad().equals(0)) {
-								System.out.println("getInputMessageText: "	+ metodo.getInputMessageText());
-								System.out.println("SOAP response: \n"+ invokeOperation(metodo, null));
-							}
-							
-							if (metodo.getSeguridad().equals(1)) {
-								talk(metodo.getEndPoint(), metodo.getInputMessageText());
-							}
+						for (Parametros parametro : metodo.getParametros()) 
+						{
+							System.out.println("Remplazando " + parametro.getNombre());
+							metodo.setInputMessageText(metodo.getInputMessageText().replaceAll("_*" + parametro.getNombre() + "_*" , getParametrosData().get(parametro.getNombre())));
 						}
 					}
+					
+					//con el resultado debo llenar mas el getParametrosData().put("algo debo poner sgun paamerizacion de respuesta", respuesta.getposiciion);
+					System.out.println("invocamos metodo");
+					if (metodo.getSeguridad().equals(0)) {
+						//System.out.println("getInputMessageText: "	+ metodo.getInputMessageText());
+						//System.out.println("SOAP response: \n"+ invokeOperation(metodo, null));
+						invokeOperation(metodo, null);
+					}
+					
+					if (metodo.getSeguridad().equals(1)) {
+						talk(metodo);
+					}
+					
+					ordenEjecucion++;
+				}
+				else
+				{
+					break;
 				}
 			}
+			break;
 		}
 	}
 
@@ -146,11 +199,11 @@ public class ConsultaAgregadorPorHilo extends Thread {
 		//Localmente >> stub.setAddress("http://sv01d000n6116:9081/SMG3_HTTP/DACallWSService");
 		//DESARROLLO CLUSTER >> stub.setAddress("http://sv4044aap.daviviendasv.com:9121/SMG3_HTTP/DACallWSService");
 		//BUS >>stub.setAddress("http://sv4012lap.daviviendasv.com/SMG3_HTTP/DACallWSService");
-		stub.setAddress("http://sv4012lap/SMG3_HTTP/DACallWSService");
-		stub.setNamespaceURI("http://webservices.smg3.bbmass.com.sv/");
+		stub.setAddress("http://localhost:8090/axis2/services/servicio_1.servicio_1HttpSoap11Endpoint/");
+		stub.setNamespaceURI("http://web.servicio.avantia.sv");
 		stub.setReturnType(XMLType.XSD_STRING);//XMLType.XSD_STRING or Qname
-		stub.setServiceName("DACallWSService");
-		stub.setPortName("DACallWSPort");			
+		stub.setServiceName("servicio_1");
+		stub.setPortName("servicio_1HttpSoap11Endpoint");			
 		stub.setDefinitionArgument(definitionArgument);
 		stub.setOpertationNameInvoke(operacion); //"DACallPREBURO"
 		stub.setTimeOutSeconds(6000);
@@ -170,7 +223,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 *
 	 * @return The response SOAP Envelope as a String
 	 */
-	public static String invokeOperation(Metodos operation,File[] attachments)
+	public void invokeOperation(Metodos operation,File[] attachments)
 	throws WSDLException
 	{
 		try{
@@ -192,15 +245,15 @@ public class ConsultaAgregadorPorHilo extends Thread {
 
 		// get the url
 		//System.out.println(operation.getTargetURL());End point "https://hub.americamovil.com/sag/services/blackgrayService"
-		URL url = new URL(operation.getTargetURL());
+		URL url = new URL(operation.getEndPoint());
 
 		// send the soap message
 		Document responseDoc = client.send(url);
 		
-		lecturaCompleta(responseDoc, "ns:return");
+		lecturaCompleta(responseDoc, "ns:return", operation);
        // returns just the soap envelope part of the message (i.e no returned attachements will be
 	   // seen)
-		return XMLSupport.prettySerialise(responseDoc);
+		//return XMLSupport.prettySerialise(responseDoc);
 		
 		}
 		catch (Exception e)
@@ -265,12 +318,12 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 *            - {@link String}
 	 * @return {@link Void}
 	 * */
-	public static void talk(String urlEndpoint, String inputMessage) {
+	public void talk(Metodos metodo) {
 		try {
 			MessageFactory messageFactory = MessageFactory.newInstance();
 			SOAPMessage msg = messageFactory.createMessage(
 					new MimeHeaders(),
-					new ByteArrayInputStream(inputMessage.getBytes(Charset.forName("UTF-8"))));
+					new ByteArrayInputStream(metodo.getInputMessageText().getBytes(Charset.forName("UTF-8"))));
 
 			// View input
 			System.out.println("Soap request:");
@@ -280,7 +333,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 			doTrustToCertificates();
 
 			// SOAPMessage rp = conn.call(msg, urlval);
-			SOAPMessage rp = sendMessage(msg, urlEndpoint);
+			SOAPMessage rp = sendMessage(msg, metodo.getEndPoint());
 
 			// View the output
 			System.out.println("Soap response");
@@ -288,7 +341,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 			
 			Document doc = toDocument(rp);
 			
-			lecturaCompleta(doc, "ns1:resultCode");
+			lecturaCompleta(doc, "ns1:resultCode", metodo);
 		} 
 		catch (Exception e) 
 		{
@@ -307,23 +360,30 @@ public class ConsultaAgregadorPorHilo extends Thread {
 		return (Document) result.getNode();
 	}
 	
-	private static void lecturaCompleta(Document doc, String nodeNameToReader) {
+	private void lecturaCompleta(Document doc, String nodeNameToReader, Metodos metodo) {
 		doc.getDocumentElement().normalize();
 		if (doc.getDocumentElement().hasChildNodes()) {
 			NodeList nodeList = doc.getDocumentElement().getChildNodes();
-			readerList(nodeList, nodeNameToReader);
+			readerList(nodeList, nodeNameToReader, metodo);
 		}
 	}
 
-	private static void readerList(NodeList nodeList, String nodeNameToReader) {
+	private void readerList(NodeList nodeList, String nodeNameToReader, Metodos metodo) {
 		for (int i = 0; i < nodeList.getLength(); i++) {
 			Node node = nodeList.item(i);
 			if (node.getNodeType() == Node.ELEMENT_NODE) {
 				if(node.getNodeName().equals(nodeNameToReader))
-					System.out.println(node.getTextContent());//esto debere guardar
+				{
+					LogDepuracion objGuardar = new LogDepuracion();
+					objGuardar.setFechaProcesamiento(new Date());
+					objGuardar.setIdError(node.getTextContent());
+					objGuardar.setMetodo(metodo);
+					objGuardar.setNumero(getParametrosData().get("movil"));
+					createData(objGuardar);
+				}
 				
 				if (node.hasChildNodes())
-					readerList(node.getChildNodes(), nodeNameToReader);
+					readerList(node.getChildNodes(), nodeNameToReader, metodo);
 			}
 		}
 	}
@@ -362,5 +422,44 @@ public class ConsultaAgregadorPorHilo extends Thread {
 			System.out.println("Respuesta en " + (System.currentTimeMillis() - time));
 		}
 		return result;
+	}
+
+	
+	/**
+	 * Metodo que nos servira para realizar cualquier inserción dentro de la
+	 * base de datos
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @param obj
+	 *            {java.lang.Object} return void
+	 * */
+	public void createData(Object obj) {
+		Session session = SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession();
+		try 
+		{
+			
+			session.beginTransaction();
+			session.save(obj);
+			session.getTransaction().commit();
+		
+		} catch (RuntimeException e) {
+			logger.error("Error al querer realizar una insercion a la base de datos", e);
+
+			if (session.getTransaction() != null && session.getTransaction().isActive()) {
+				try 
+				{
+					// Second try catch as the rollback could fail as well
+					session.getTransaction().rollback();
+				} catch (HibernateException e1) {
+					logger.error("Error al querer realizar rolback a la base de datos", e1);
+				}
+				// throw again the first exception
+				throw e;
+			}
+		}
+	}
+	
+	private HashMap<String, String> getParametrosData() {
+		return parametrosData;
 	}	
 }

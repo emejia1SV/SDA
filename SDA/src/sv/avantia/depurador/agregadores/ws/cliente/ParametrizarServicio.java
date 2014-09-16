@@ -342,7 +342,7 @@ public class ParametrizarServicio {
 		try 
 		{
 			System.out.println(schemaElement.toString());
-			schema = XMLSupport.convertElementToSchema((Element)schemaElement);
+			schema = XMLSupport.convertElementToSchema(schemaElement);
 			if(schema!=null){
 				schemaTargetNamespace = schema.getTargetNamespace();
 			}else{
@@ -395,7 +395,7 @@ public class ParametrizarServicio {
 				Port port = (Port) portIter.next();
 
 				// now we will create operations from the Binding information
-				agregador = buildOperations(port, namespace, agregador);
+				agregador = buildOperations(qName, port, namespace, agregador);
 			}
 
 			
@@ -425,7 +425,7 @@ public class ParametrizarServicio {
 	 * @return A List of built and populated OperationInfos is returned for each
 	 *         Binding Operation
 	 */
-	private Agregadores buildOperations(Port port, String namespace, Agregadores agregador) throws WSDLException 
+	private Agregadores buildOperations(QName qName, Port port, String namespace, Agregadores agregador) throws WSDLException 
 	{
 		try 
 		{
@@ -473,6 +473,7 @@ public class ParametrizarServicio {
 						Metodos operationInfo = new Metodos();
 						operationInfo.setStyle(style);
 						operationInfo.setId(id);
+						operationInfo.setNombre(qName.getLocalPart());
 
 						// style maybe overridden in operation
 						String operStyle = ((SOAPOperation) operElem).getStyle();

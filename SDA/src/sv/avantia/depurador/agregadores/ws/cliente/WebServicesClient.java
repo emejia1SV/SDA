@@ -6,6 +6,7 @@ import java.util.Map;
 
 import javax.xml.namespace.QName;
 import javax.xml.rpc.Call;
+import javax.xml.rpc.ServiceException;
 import javax.xml.rpc.ServiceFactory;
 import javax.xml.rpc.ParameterMode;
 import javax.xml.rpc.Service;
@@ -29,10 +30,20 @@ public class WebServicesClient {
 	private QName returnType;
 	private int timeOutMiliseconds;
 	private Object value;
+	private static ServiceFactory factory;
 		
 	/*VARIABLES CLASE BASE*/
 	private List<Object> parametros;
 	private Call call;
+	
+	static{
+		try {
+			factory = ServiceFactory.newInstance();
+		} catch (ServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 	
 	/**
 	 * constructor
@@ -76,7 +87,7 @@ public class WebServicesClient {
 	 */
 	public synchronized Object respuestaWebService() throws Exception{
 		validador();
-		ServiceFactory factory = ServiceFactory.newInstance();
+		
 		Service service = factory.createService(new QName(getServiceName()));
         call = service.createCall(new QName(getPortName()));
         call.setTargetEndpointAddress(getAddress());
@@ -158,6 +169,11 @@ public class WebServicesClient {
 			String key = e.getKey();
 			Object value = e.getValue();
 
+			if (e.getKey().equals("parametroWeb1")) {
+				call.addParameter(key, XMLType.XSD_STRING, ParameterMode.IN);
+				parametros.add(value);
+			}
+			
 			if (e.getKey().equals("arg0")) {
 				call.addParameter(key, XMLType.XSD_STRING, ParameterMode.IN);
 				parametros.add(value);

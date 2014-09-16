@@ -2,6 +2,20 @@ package sv.avantia.depurador.agregadores.ws.cliente;
 
 import java.io.File;
 import java.net.URL;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
+import javax.wsdl.Definition;
+import javax.wsdl.Operation;
+import javax.wsdl.Part;
+import javax.wsdl.PortType;
+import javax.wsdl.Service;
+import javax.wsdl.factory.WSDLFactory;
+import javax.wsdl.xml.WSDLReader;
+import javax.xml.namespace.QName;
+import javax.xml.rpc.encoding.XMLType;
 
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
@@ -24,7 +38,43 @@ public class Cliente {
 	public static Logger logger = Logger.getLogger("avantiaLogger");
 	 
 	public static void main(String[] args) {
-		prueba();
+		//prueba();
+		try {
+			//WsdlParserXXX("http://localhost:8090/axis2/services/servicio_1?wsdl");
+			prueba2();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+	
+	public static void prueba2(){
+		Map<String, Object> definitionArgument = new HashMap<String, Object>();
+		definitionArgument.put("parametroWeb1", "Edwin");
+		
+		WebServicesClient stub = new WebServicesClient();
+		//1st argument service URI, refer to wsdl document above
+		//2nd argument is service name, refer to wsdl document above
+		//QName qname = new QName("http://webservices.smg3.bbmass.com.sv/", "DACallWSService");
+		//Localmente >> stub.setAddress("http://sv01d000n6116:9081/SMG3_HTTP/DACallWSService");
+		//DESARROLLO CLUSTER >> stub.setAddress("http://sv4044aap.daviviendasv.com:9121/SMG3_HTTP/DACallWSService");
+		//BUS >>stub.setAddress("http://sv4012lap.daviviendasv.com/SMG3_HTTP/DACallWSService");
+		stub.setAddress("http://sv4012lap/SMG3_HTTP/DACallWSService");
+		stub.setNamespaceURI("http://webservices.smg3.bbmass.com.sv/");
+		stub.setReturnType(XMLType.XSD_STRING);//XMLType.XSD_STRING or Qname
+		stub.setServiceName("DACallWSService");
+		stub.setPortName("DACallWSPort");			
+		stub.setDefinitionArgument(definitionArgument);
+		stub.setOpertationNameInvoke("saludar"); //"DACallPREBURO"
+		stub.setTimeOutSeconds(6000);
+		
+		try {
+			System.out.println(stub.respuestaWebService());
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	public static void prueba(){
@@ -49,7 +99,7 @@ public class Cliente {
 			
 			ParametrizarServicio servicio = new ParametrizarServicio();
 			//agregador = wsdlparser.getServicesInfoFromFile("C:/Users/Edwin/Documents/documentacion Agregadores claro/SMT wsdl/WSDL Black Gray List_RolandoSkype/WSDL Black Gray List/SMT_blackgray_service_1_0_1.wsdl", agregador);
-			agregador = servicio.getServicesInfo("http://192.168.0.100:8090/axis2/services/Servicio_1?wsdl", agregador);
+			agregador = servicio.getServicesInfo("http://localhost:8090/axis2/services/servicio_1?wsdl", agregador);
 			
 			for (Metodos operation : agregador.getMetodos()) {
 				System.out.println("Operation Name: " 		+ operation.toString());
@@ -61,6 +111,7 @@ public class Cliente {
 				System.out.println("getTargetMethodName: "	+ operation.getTargetMethodName());
 				System.out.println("getTargetObjectURI(): "	+ operation.getTargetObjectURI());
 				System.out.println("getTargetURL(): "		+ operation.getTargetURL());
+				System.out.println("getNombre: "		+ operation.getNombre());
 				System.out.println();
 				
 				
@@ -316,9 +367,10 @@ public class Cliente {
 	}*/
 	
 	
-	/*
-	public void WsdlParserXXX(String wsdlURL) throws javax.wsdl.WSDLException {
+	
+	public static void WsdlParserXXX(String wsdlURL) throws javax.wsdl.WSDLException {
 
+		WSDLFactory wsdlFactory = WSDLFactory.newInstance();
         WSDLReader wsdlReader = wsdlFactory.newWSDLReader();
 
 		wsdlReader.setFeature("javax.wsdl.verbose", false);
@@ -329,13 +381,6 @@ public class Cliente {
 		    System.err.println("definition element is null");
 		    System.exit(1);
 		}
-
-        
-		*//***********************************************************
-		 * http://exchangerxml.googlecode.com/svn/trunk/src/com/cladonia/xml/webservice/wsdl/WSDLParser.java
-		 ***********************************************************
-		 *http://predic8.com/wsdl-reading.htm
-		 ***********************************************************//*
 
 // find service
 		Map servicesMap = definition.getServices();
@@ -349,9 +394,9 @@ public class Cliente {
 		    
 		}
 
-		*//*************************************************************
-		 *************************************************************
-		 *************************************************************//*
+		//*************************************************************
+		// *************************************************************
+		// *************************************************************//*
 		Map portTypesMap = definition.getAllPortTypes();
 		Iterator portTypesIter = portTypesMap.values().iterator();
 		PortType portType;
@@ -397,7 +442,7 @@ public class Cliente {
 		    }
 		}
     }
-*/
+
 
 	 /*DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
     DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();

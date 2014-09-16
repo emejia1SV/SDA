@@ -30,7 +30,7 @@ public class LogDepuracion implements Serializable {
 	private String numero;
 
 	@Column(name = "ID_ERROR")
-	private Integer idError;
+	private String idError;
 
 	@Column(name = "FECHA_PROCESAMIENTO")
 	private Date fechaProcesamiento;
@@ -55,11 +55,11 @@ public class LogDepuracion implements Serializable {
 		this.numero = numero;
 	}
 
-	public Integer getIdError() {
+	public String getIdError() {
 		return idError;
 	}
 
-	public void setIdError(Integer idError) {
+	public void setIdError(String idError) {
 		this.idError = idError;
 	}
 
