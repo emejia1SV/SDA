@@ -31,7 +31,11 @@ public class Iniciar {
 	 * */
 	public static Logger logger = Logger.getLogger("avantiaLogger");
 	
-	private static List<String> moviles = new ArrayList<String>();
+	/**
+	 * Instancia de las operaciones con la base de datos.
+	 * 
+	 * */
+	private static BdEjecucion ejecucion = null;
 
 	/**
 	 * Metodo que inicializara todo el flujo del JAR ejecutable
@@ -40,48 +44,97 @@ public class Iniciar {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-	
 		long init = System.currentTimeMillis();
-		//consultar los numeros
-		obtenerNumeros();
-		
-		//consultar la parametrización
-		for (Pais pais : obtenerParmetrizacion()) {
-			System.out.println("Procesando... " + pais.getNombre());
-			for (Agregadores agregador : pais.getAgregadores()) {
-				//abrir un hilo pr cada agregador parametrizados
-				ConsultaAgregadorPorHilo hilo = new ConsultaAgregadorPorHilo();
-				hilo.setMoviles(moviles);
-				hilo.setAgregador(agregador);
-				hilo.start();
-			}
+		List<String> moviles = new ArrayList<String>();
+		try 
+		{
+			//iniciar la instancia a las operaciones a la base de datos
+			setEjecucion(new BdEjecucion());
+			
+			//consultar los numeros
+			moviles = obtenerNumeros();
+			
+			if(moviles.size()>0)
+			{
+				//consultar la parametrización
+				for (Pais pais : obtenerParmetrizacion()) 
+				{
+					System.out.println("Procesando... " + pais.getNombre());
+					for (Agregadores agregador : pais.getAgregadores()) 
+					{
+						//abrir un hilo pr cada agregador parametrizados
+						ConsultaAgregadorPorHilo hilo = new ConsultaAgregadorPorHilo();
+						hilo.setMoviles(moviles);
+						hilo.setAgregador(agregador);
+						hilo.start();
+					}
+				}
+			}			
+		} 
+		catch (Exception e) 
+		{
+			logger.error("Error en el sistema de depuracion masiva automatico ", e);
 		}
-		
-		//terminar el flujo.
-		SessionFactoryUtil.closeSession();
-		
-		System.out.println("finish " + ((System.currentTimeMillis() - init)/1000)  + "Segundos");
+		finally
+		{
+			//terminar el flujo.
+			SessionFactoryUtil.closeSession();
+			moviles = null;
+			setEjecucion(null);
+			logger.info("finalizo la depuración de los numeros en " + ((System.currentTimeMillis() - init)/1000)  + "Segundos");
+		}
 	}
 	
+	/**
+	 * Obtener el insumo de numeros que deberan ser procesados para su
+	 * depuracion
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @return {@link List} numeros para depurar
+	 * @throws Exception
+	 *             podria generarse una exepcion en el momento de ejecutar la
+	 *             consulta a la base de datos
+	 * */
 	@SuppressWarnings("unchecked")
-	public static void obtenerNumeros(){
-		BdEjecucion ejecucion = new BdEjecucion();
-		try {
-			moviles =  (List<String>)(List<?>) ejecucion.listData("select b.numero from CLIENTE_TEL b where b.id='287040'");
-		} finally{
-			ejecucion = null;
-		}
-		
+	public static List<String> obtenerNumeros() throws Exception 
+	{
+		return (List<String>)(List<?>) getEjecucion().listData("select b.numero from CLIENTE_TEL b where b.id='287040'");
 	}
 	
+	/**
+	 * Obtener insumo de parametrización para consultar a los agregadores
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @return {@link List} paises con sus dependencias en la base de datos
+	 * @throws Exception
+	 *             podria generarse una exepcion en el momento de ejecutar la
+	 *             consulta a la base de datos
+	 * */
 	@SuppressWarnings("unchecked")
-	public static List<Pais> obtenerParmetrizacion(){
-		BdEjecucion ejecucion = new BdEjecucion();
-		try {
-			return (List<Pais>)(List<?>) ejecucion.listData("FROM SDA_PAISES WHERE ID = 2");
-		} finally{
-			ejecucion = null;
-		}
+	public static List<Pais> obtenerParmetrizacion() throws Exception 
+	{
+		return (List<Pais>)(List<?>) getEjecucion().listData("FROM SDA_PAISES WHERE ID = 2");
 	}
 
+	/**
+	 * getter
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @return the ejecucion
+	 */
+	private static BdEjecucion getEjecucion() {
+		return ejecucion;
+	}
+
+	/**
+	 * setter
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @param ejecucion
+	 *            the ejecucion to set
+	 * @return {@link Void}
+	 */
+	private static void setEjecucion(BdEjecucion ejecucion) {
+		Iniciar.ejecucion = ejecucion;
+	}
 }

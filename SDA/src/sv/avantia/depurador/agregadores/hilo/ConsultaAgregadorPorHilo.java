@@ -9,7 +9,6 @@ import java.nio.charset.Charset;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -46,6 +45,7 @@ import sv.avantia.depurador.agregadores.entidades.Agregadores;
 import sv.avantia.depurador.agregadores.entidades.LogDepuracion;
 import sv.avantia.depurador.agregadores.entidades.Metodos;
 import sv.avantia.depurador.agregadores.entidades.Parametros;
+import sv.avantia.depurador.agregadores.entidades.Respuesta;
 import sv.avantia.depurador.agregadores.jdbc.SessionFactoryUtil;
 import sv.avantia.depurador.agregadores.ws.cliente.WebServicesClient;
 
@@ -55,9 +55,31 @@ import com.cladonia.xml.webservice.wsdl.XMLSupport;
 
 public class ConsultaAgregadorPorHilo extends Thread {
 
-	private List<String> moviles = new ArrayList<String>();
-	private Agregadores agregador;
-	private HashMap<String, String> parametrosData = new HashMap<String, String>();
+	/**
+	 * Instancia del insumo {@link List} de {@link String} donde se espera
+	 * recibir un listado de numeros para depurar
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * */
+	private List<String> moviles = null;
+	
+	/**
+	 * Instancia del insumo {@link Agregadores} que se espera recibir y se espera nunca llegue a
+	 * esta instancia nulo y este es el que obtendra todo el insumo de la
+	 * parametrizacion para la consulta a los agregadores
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * */
+	private Agregadores agregador = null;
+	
+	/**
+	 * Instancia de un {@link HashMap} para mantener en memoria los parametros
+	 * con los que me serviran de insumo para llenar los parametros requeridos
+	 * por los agregadores
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * */
+	private HashMap<String, String> parametrosData = null;
 
 	/**
 	 * Obtener el appender para la impresión en un archivo de LOG
@@ -68,27 +90,50 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	
 	public void run() {
 		// consultar un agregador WS
+		long init = System.currentTimeMillis();
 		try {
 			procesarServiciosWeb();
 		} catch (Exception e) {
-			System.out.println("Hubo Error dentro del hilo");
+			logger.error("Error dentro del Hilo de ejecucion para la depuracion " + e.getMessage(), e);
 			this.interrupt();
-			e.printStackTrace();
+		} finally{
+			System.out.println("Tiempo en ejecutarse el hilo " + ((System.currentTimeMillis() - init)/1000)  + "Segundos");
+			this.interrupt();
 		}
 	}
 	
-	private void procesarServiciosWeb() throws WSDLException
+	/**
+	 * Seccion de lectura de los numeros de telefono
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @throws Exception 
+	 * 
+	 * */
+	private void procesarServiciosWeb() throws Exception
 	{		
-		System.out.println("Inicio Hilo por agregador " + getAgregador().getNombre_agregador());
+		System.out.println("Inicio Hilo por agregador ");
 		if (getAgregador() != null) 
 		{
+			System.out.println("Inicio Hilo por agregador " + getAgregador().getNombre_agregador());
+			System.out.println("el agregador no esta null");
 			if (getAgregador().getMetodos() != null) 
 			{
-				for (String movil : moviles) 
+				System.out.println("los metodos no estan nulos");
+				System.out.println(getMoviles().size());
+				for (String movil : getMoviles()) 
 				{
+					System.out.println("vamos a depurar el numero " + movil);
 					invocacionPorNumero(movil);
 				}
 			}
+			else
+			{
+				System.out.println("no hay metodos");
+				this.interrupt();
+			}
+		}
+		else{
+			System.out.println("hey el agregador por que esta nulo");
+			this.interrupt();
 		}
 	}
 	
@@ -98,16 +143,28 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 * @author Edwin Mejia - Avantia Consultores
 	 * @param movil {@link String} numero de celular procesado
 	 * @return {@link String}
+	 * @throws Exception 
 	 * */
-	public synchronized void invocacionPorNumero(String movil) throws WSDLException{
+	public synchronized void invocacionPorNumero(String movil) throws Exception{
 		//obtener el mensaje de input y modificar parametros
 		int ordenEjecucion = 1;
 		int tamanio = getAgregador().getMetodos().size();
-		while(true){
+		boolean seguir=true;
+		while(seguir){
+			
+			//nos evitamos un bucle infinito
+			if( getAgregador().getMetodos().size()<1)
+			{
+				seguir = false;
+				break;
+			}
+			
+			System.out.println("Metodos a ejecutar " + getAgregador().getNombre_agregador() + " > "  + getAgregador().getMetodos().size());
 			for (Metodos metodo : getAgregador().getMetodos()) 
 			{
-			
+				System.out.println(metodo.getNombre());
 				//porque voy a meter en un solo metodo el setear paraetros llenare esto aqui ahorita
+				setParametrosData(new HashMap<String, String>());
 				getParametrosData().put("movil", movil);
 				getParametrosData().put("fecha", new Date().toString());
 				getParametrosData().put("accion", metodo.getAccion());
@@ -119,27 +176,36 @@ public class ConsultaAgregadorPorHilo extends Thread {
 				// buscar en ese historial de servicios los que esten activos 
 				// y de esos activos seria ejecutar la baja para cada uno de dichos servicios
 				
+				System.out.println(tamanio);
+				System.out.println(ordenEjecucion);
+				System.out.println(metodo.getOrdenEjecucion());
+				
 				//verificar esto en contra del tamaño de la lista  de metodo para hacer un bucle hasta ejecutarse en el orden deseado
-				if(ordenEjecucion == metodo.getOrdenEjecucion() && ordenEjecucion<= tamanio)
+				if(ordenEjecucion == metodo.getOrdenEjecucion() && ordenEjecucion <= tamanio)
 				{
 					if (metodo.getParametros() != null) 
 					{
 						for (Parametros parametro : metodo.getParametros()) 
 						{
 							System.out.println("Remplazando " + parametro.getNombre());
-							metodo.setInputMessageText(metodo.getInputMessageText().replaceAll("_*" + parametro.getNombre() + "_*" , getParametrosData().get(parametro.getNombre())));
+							metodo.setInputMessageText(metodo.getInputMessageText().replace(("_*" + parametro.getNombre() + "_*").toString() , getParametrosData().get(parametro.getNombre())));
 						}
 					}
 					
 					//con el resultado debo llenar mas el getParametrosData().put("algo debo poner sgun paamerizacion de respuesta", respuesta.getposiciion);
-					System.out.println("invocamos metodo");
-					if (metodo.getSeguridad().equals(0)) {
+					System.out.println("invocamos metodo con seguridad " + metodo.getSeguridad() );
+					
+					System.out.println(metodo.getSeguridad() == 0);
+					if (metodo.getSeguridad() == 0) {
 						//System.out.println("getInputMessageText: "	+ metodo.getInputMessageText());
 						//System.out.println("SOAP response: \n"+ invokeOperation(metodo, null));
+						System.out.println("entre a invocarlo");
 						invokeOperation(metodo, null);
 					}
 					
-					if (metodo.getSeguridad().equals(1)) {
+					System.out.println(metodo.getSeguridad() == 1);
+					if (metodo.getSeguridad() == 1) {
+						System.out.println("entre a invocarlo con seguridad");
 						talk(metodo);
 					}
 					
@@ -147,10 +213,14 @@ public class ConsultaAgregadorPorHilo extends Thread {
 				}
 				else
 				{
-					break;
+					System.out.println("primero " + (ordenEjecucion == metodo.getOrdenEjecucion()));
+					System.out.println("segundo " + (ordenEjecucion <= tamanio));
+					System.out.println("Tercero " + (ordenEjecucion>tamanio));
+					if(ordenEjecucion>tamanio)
+						seguir = false;
 				}
 			}
-			break;
+			//seguir = false;
 		}
 	}
 
@@ -218,18 +288,21 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	/**
 	 * Invoke a SOAP call passing in an operation instance and attachments
 	 *
-	 * @param operation The selected operation
+	 * @param operation {@link Metodos} The selected operation
 	 * @param attachements The required attachments
 	 *
 	 * @return The response SOAP Envelope as a String
+	 * @throws WSDLException algun problema en la interpretacion e invocacion de los servicios
 	 */
 	public void invokeOperation(Metodos operation,File[] attachments)
 	throws WSDLException
 	{
 		try{
-		
+		System.out.println("Esto viene" );
+		System.out.println(operation.getInputMessageText());
 		Document docRequest = XMLSupport.parse(operation.getInputMessageText());
 
+		System.out.println(docRequest);
 		// create the saaj based soap client
 		SOAPClient client = new SOAPClient(docRequest);
 
@@ -240,17 +313,17 @@ public class ConsultaAgregadorPorHilo extends Thread {
 		}
 
 		// set the SOAPAction
-		//System.out.println(operation.getSoapActionURI()); "loc:addGrayList"
+		System.out.println(operation.getSoapActionURI()); //"loc:addGrayList"
 		client.setSOAPAction(operation.getSoapActionURI());
 
 		// get the url
-		//System.out.println(operation.getTargetURL());End point "https://hub.americamovil.com/sag/services/blackgrayService"
+		System.out.println(operation.getTargetURL());//End point "https://hub.americamovil.com/sag/services/blackgrayService"
 		URL url = new URL(operation.getEndPoint());
 
 		// send the soap message
 		Document responseDoc = client.send(url);
 		
-		lecturaCompleta(responseDoc, "ns:return", operation);
+		lecturaCompleta(responseDoc, operation);
        // returns just the soap envelope part of the message (i.e no returned attachements will be
 	   // seen)
 		//return XMLSupport.prettySerialise(responseDoc);
@@ -258,6 +331,8 @@ public class ConsultaAgregadorPorHilo extends Thread {
 		}
 		catch (Exception e)
 		{
+			System.out.println("hubo una regada mmmmm m...." + e.getMessage());
+			logger.error("basura trono", e);
 			// should log\trace this here
 			throw new WSDLException(e);
 		}
@@ -317,8 +392,9 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 * @param inputMessage
 	 *            - {@link String}
 	 * @return {@link Void}
+	 * @throws Exception 
 	 * */
-	public void talk(Metodos metodo) {
+	private void talk(Metodos metodo) throws Exception {
 		try {
 			MessageFactory messageFactory = MessageFactory.newInstance();
 			SOAPMessage msg = messageFactory.createMessage(
@@ -341,14 +417,23 @@ public class ConsultaAgregadorPorHilo extends Thread {
 			
 			Document doc = toDocument(rp);
 			
-			lecturaCompleta(doc, "ns1:resultCode", metodo);
+			lecturaCompleta(doc, metodo);
 		} 
 		catch (Exception e) 
 		{
-			System.out.println(e.getMessage());
+			throw e;
 		}
 	}
 	
+	/**
+	 * Metodo para la transformación de un {@link SOAPMessage} Response a un
+	 * {@link Document} y hacer mas facil la busqueda del dato
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @param soapMsg
+	 *            {@link SOAPMessage}
+	 * @return {@link Document}
+	 * */
 	private static Document toDocument(SOAPMessage soapMsg)
 			throws TransformerConfigurationException, TransformerException,
 			SOAPException, IOException {
@@ -360,15 +445,46 @@ public class ConsultaAgregadorPorHilo extends Thread {
 		return (Document) result.getNode();
 	}
 	
-	private void lecturaCompleta(Document doc, String nodeNameToReader, Metodos metodo) {
+	/**
+	 * Metodo que recibe el documento Soap Response y este hace la lectura de la
+	 * lista de nodos que obtiene para procesarlos y buscar la {@link Respuesta}
+	 * deseada
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @param doc
+	 *            {@link Document}
+	 * @param nodeNameToReader
+	 *            {@link String}
+	 * @param metodo
+	 *            {@link Metodos}
+	 * @return {@link Void}
+	 * */
+	private void lecturaCompleta(Document doc, Metodos metodo) {
 		doc.getDocumentElement().normalize();
-		if (doc.getDocumentElement().hasChildNodes()) {
-			NodeList nodeList = doc.getDocumentElement().getChildNodes();
-			readerList(nodeList, nodeNameToReader, metodo);
+		for (Respuesta respuesta : metodo.getRespuestas()) {
+			if (doc.getDocumentElement().hasChildNodes()) {
+				NodeList nodeList = doc.getDocumentElement().getChildNodes();
+				lecturaListadoNodos(nodeList, respuesta.getNombre(), metodo);
+			}
 		}
 	}
 
-	private void readerList(NodeList nodeList, String nodeNameToReader, Metodos metodo) {
+	/**
+	 * Metodo recursivo, para la lectura de nodos del Soap Response que se ha
+	 * recibido de la consulta de los {@link Agregadores} a su vez este metodo
+	 * se encarga de guardar en la base de datos as {@link Respuesta} obtenidas
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @param nodeList
+	 *            {@link NodeList}
+	 * @param nodeNameToReader
+	 *            {@link String} nombre del nodo que andamos buscando dentro del listado
+	 * @param metodo
+	 *            {@link Metodos} insumo para poder guardar la {@link Respuesta}
+	 *            en la base de datos
+	 * @return {@link Void}
+	 * */
+	private void lecturaListadoNodos(NodeList nodeList, String nodeNameToReader, Metodos metodo) {
 		for (int i = 0; i < nodeList.getLength(); i++) {
 			Node node = nodeList.item(i);
 			if (node.getNodeType() == Node.ELEMENT_NODE) {
@@ -383,7 +499,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 				}
 				
 				if (node.hasChildNodes())
-					readerList(node.getChildNodes(), nodeNameToReader, metodo);
+					lecturaListadoNodos(node.getChildNodes(), nodeNameToReader, metodo);
 			}
 		}
 	}
@@ -398,23 +514,35 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 * @param endPoint
 	 *            - {@link String}
 	 * @return {@link SOAPMessage}
+	 * @throws MalformedURLException
+	 * @throws SOAPException 
+	 * @throws UnsupportedOperationException 
 	 * */
-	static public SOAPMessage sendMessage(SOAPMessage message, String endPoint)
-			throws MalformedURLException, SOAPException {
+	static private SOAPMessage sendMessage(SOAPMessage message, String endPoint) 
+			throws MalformedURLException, UnsupportedOperationException, SOAPException
+	{
 		SOAPMessage result = null;
-		if (endPoint != null && message != null) {
+		if (endPoint != null && message != null) 
+		{
 			URL url = new URL(endPoint);
 			SOAPConnectionFactory scf = SOAPConnectionFactory.newInstance();
 			SOAPConnection connection = null;
 			long time = System.currentTimeMillis();
-			try {
+			try 
+			{
 				connection = scf.createConnection(); // point-to-point connection
 				result = connection.call(message, url);
-			} finally {
-				if (connection != null) {
-					try {
+			} 
+			finally 
+			{
+				if (connection != null) 
+				{
+					try 
+					{
 						connection.close();
-					} catch (SOAPException soape) {
+					} 
+					catch (SOAPException soape) 
+					{
 						System.out.print("Can't close SOAPConnection:" + soape);
 					}
 				}
@@ -459,7 +587,25 @@ public class ConsultaAgregadorPorHilo extends Thread {
 		}
 	}
 	
+	/**
+	 * getter
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @return {@link HashMap} listado de datos para llenar parametros de los
+	 *         servicios web de los  {@link Agregadores}
+	 */
 	private HashMap<String, String> getParametrosData() {
 		return parametrosData;
+	}
+
+	/**
+	 * setter
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @param parametrosData the parametrosData to set {@link HashMap} 
+	 * @return {@link Void}
+	 */
+	private void setParametrosData(HashMap<String, String> parametrosData) {
+		this.parametrosData = parametrosData;
 	}	
 }

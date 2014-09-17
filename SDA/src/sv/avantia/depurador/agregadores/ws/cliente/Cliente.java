@@ -2,19 +2,9 @@ package sv.avantia.depurador.agregadores.ws.cliente;
 
 import java.io.File;
 import java.net.URL;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
-import javax.wsdl.Definition;
-import javax.wsdl.Operation;
-import javax.wsdl.Part;
-import javax.wsdl.PortType;
-import javax.wsdl.Service;
-import javax.wsdl.factory.WSDLFactory;
-import javax.wsdl.xml.WSDLReader;
-import javax.xml.namespace.QName;
 import javax.xml.rpc.encoding.XMLType;
 
 import org.apache.log4j.Logger;
@@ -366,7 +356,7 @@ public class Cliente {
 		}
 	}*/
 	
-	
+	/*
 	
 	public static void WsdlParserXXX(String wsdlURL) throws javax.wsdl.WSDLException {
 
@@ -443,7 +433,7 @@ public class Cliente {
 		}
     }
 
-
+*/
 	 /*DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
     DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
     File file = new File("C:/Users/mar/Desktop/JAVAxml/libro.xml");

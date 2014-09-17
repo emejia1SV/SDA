@@ -14,7 +14,6 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
@@ -92,8 +91,8 @@ public class Metodos implements Serializable{
 	@OneToMany(fetch = FetchType.EAGER, mappedBy = "metodo", cascade = { CascadeType.ALL })
 	private Set<Parametros> parametros;
 
-	@OneToOne(fetch = FetchType.LAZY, mappedBy = "metodo", cascade = { CascadeType.ALL })
-	private Respuesta respuesta;
+	@OneToMany(fetch = FetchType.EAGER, mappedBy = "metodo", cascade = { CascadeType.ALL })
+	private Set<Respuesta> respuestas;
 
 	@OneToMany(fetch = FetchType.LAZY, mappedBy = "metodo", cascade = { CascadeType.ALL })
 	private Set<LogDepuracion> depuraciones;
@@ -228,12 +227,12 @@ public class Metodos implements Serializable{
 		this.parametros = parametros;
 	}
 
-	public Respuesta getRespuesta() {
-		return respuesta;
+	public Set<Respuesta> getRespuestas() {
+		return respuestas;
 	}
 
-	public void setRespuesta(Respuesta respuesta) {
-		this.respuesta = respuesta;
+	public void setRespuestas(Set<Respuesta> respuestas) {
+		this.respuestas = respuestas;
 	}
 
 	public Set<LogDepuracion> getDepuraciones() {
