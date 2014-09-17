@@ -1,9 +1,7 @@
 package sv.avantia.depurador.agregadores.ws.cliente;
 
 import java.io.File;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -33,12 +31,12 @@ import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import org.apache.log4j.Logger;
 import org.exolab.castor.xml.schema.ComplexType;
 import org.exolab.castor.xml.schema.ElementDecl;
 import org.exolab.castor.xml.schema.Group;
 import org.exolab.castor.xml.schema.Particle;
 import org.exolab.castor.xml.schema.Schema;
-
 import org.exolab.castor.xml.schema.Structure;
 import org.exolab.castor.xml.schema.XMLType;
 import org.w3c.dom.Document;
@@ -53,6 +51,13 @@ import com.cladonia.xml.webservice.wsdl.XMLSupport;
 import com.ibm.wsdl.extensions.schema.SchemaImpl;
 
 public class ParametrizarServicio {
+	
+	/**
+	 * Obtener el appender para la impresión en un archivo de LOG
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * */
+	public static Logger logger = Logger.getLogger("avantiaLogger");
 	
 	// holds the SOAP Body element for each message
 	private Element header = null;
@@ -209,13 +214,13 @@ public class ParametrizarServicio {
 		{
 			// should really log this here
 			final String errMsg = "The following error occurred obtaining the service information from the WSDL: " + e.getMessage();
-			System.out.println(errMsg);
+			logger.error(errMsg);
 			throw e;
 		} 
 		catch (Exception e) 
 		{
 			final String errMsg = "The following error occurred obtaining the service information from the WSDL: " + e.getMessage();
-			System.out.println(errMsg);
+			logger.error(errMsg);
 			throw new WSDLException(errMsg, e);
 		}
 	}
@@ -278,13 +283,13 @@ public class ParametrizarServicio {
 		{
 			// should really log this here
 			final String errMsg = "The following error occurred obtaining the service information from the WSDL: " + e.getMessage();
-			System.out.println(errMsg);
+			logger.error(errMsg);
 			throw e;
 		} 
 		catch (Exception e) 
 		{
 			final String errMsg = "The following error occurred obtaining the service information from the WSDL: " + e.getMessage();
-			System.out.println(errMsg);
+			logger.error(errMsg);
 			throw new WSDLException(errMsg, e);
 		}
 	}
@@ -341,19 +346,17 @@ public class ParametrizarServicio {
 
 		try 
 		{
-			System.out.println(schemaElement.toString());
 			schema = XMLSupport.convertElementToSchema(schemaElement);
 			if(schema!=null){
 				schemaTargetNamespace = schema.getTargetNamespace();
 			}else{
-				System.out.println("El Schema nos regreso nulo");
+				logger.warn("El Schema nos regreso nulo");
 			}
 			
 		}
 		catch (Exception e) 
 		{
-			System.out.println("The following error occurred obtaining the schema from WSDL: " + e.getMessage());
-			e.printStackTrace();
+			logger.error("The following error occurred obtaining the schema from WSDL: " + e.getMessage(), e);
 		}
 		
 		return schema;
@@ -567,9 +570,10 @@ public class ParametrizarServicio {
 			    .getDocumentElement();
 		
 		node = (Element) document.importNode(node, true);
-		header.appendChild(node);*/
+		header.appendChild(node);
+		*/
 		
-		Element security = document.createElement( "wsse:Security" );
+		/*Element security = document.createElement( "wsse:Security" );
 		security.setAttribute("xmlns:wsse", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd");
 		header.appendChild(security);
 		
@@ -593,7 +597,7 @@ public class ParametrizarServicio {
         Element created = document.createElement("wsu:Created");
         SimpleDateFormat df = new SimpleDateFormat("yyyy-mm-dd'T'hh:mm:ss'Z'");
         created.setTextContent(df.format(Calendar.getInstance().getTime()));
-        usernameToken.appendChild(created);
+        usernameToken.appendChild(created);*/
         
 		// create the SOAP Body (store in a memeber variale so we can easly access later)
 		body = document.createElementNS(

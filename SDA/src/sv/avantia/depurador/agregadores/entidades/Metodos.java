@@ -79,9 +79,6 @@ public class Metodos implements Serializable{
 	@Column(name = "PASS")
 	private String pass;
 	
-	@Column(name = "ACCION")
-	private String accion;
-	
 	@Column(name = "SEGURIDAD")
 	private Integer seguridad;
 	
@@ -273,14 +270,6 @@ public class Metodos implements Serializable{
 
 	public void setPass(String pass) {
 		this.pass = pass;
-	}
-
-	public String getAccion() {
-		return accion;
-	}
-
-	public void setAccion(String accion) {
-		this.accion = accion;
 	}
 
 	@Override

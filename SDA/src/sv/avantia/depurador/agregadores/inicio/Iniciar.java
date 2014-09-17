@@ -48,6 +48,8 @@ public class Iniciar {
 		List<String> moviles = new ArrayList<String>();
 		try 
 		{
+			logger.info("Iniciando la depuración Masiva...");
+			
 			//iniciar la instancia a las operaciones a la base de datos
 			setEjecucion(new BdEjecucion());
 			
@@ -98,7 +100,7 @@ public class Iniciar {
 	@SuppressWarnings("unchecked")
 	public static List<String> obtenerNumeros() throws Exception 
 	{
-		return (List<String>)(List<?>) getEjecucion().listData("select b.numero from CLIENTE_TEL b where b.id='287040'");
+		return (List<String>)(List<?>) getEjecucion().listData("select b.numero from CLIENTE_TEL b");
 	}
 	
 	/**
@@ -113,7 +115,7 @@ public class Iniciar {
 	@SuppressWarnings("unchecked")
 	public static List<Pais> obtenerParmetrizacion() throws Exception 
 	{
-		return (List<Pais>)(List<?>) getEjecucion().listData("FROM SDA_PAISES WHERE ID = 2");
+		return (List<Pais>)(List<?>) getEjecucion().listData("FROM SDA_PAISES");
 	}
 
 	/**

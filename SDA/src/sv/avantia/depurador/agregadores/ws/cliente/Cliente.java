@@ -39,17 +39,12 @@ public class Cliente {
 		
 	}
 	
+	@Deprecated
 	public static void prueba2(){
 		Map<String, Object> definitionArgument = new HashMap<String, Object>();
 		definitionArgument.put("parametroWeb1", "Edwin");
 		
 		WebServicesClient stub = new WebServicesClient();
-		//1st argument service URI, refer to wsdl document above
-		//2nd argument is service name, refer to wsdl document above
-		//QName qname = new QName("http://webservices.smg3.bbmass.com.sv/", "DACallWSService");
-		//Localmente >> stub.setAddress("http://sv01d000n6116:9081/SMG3_HTTP/DACallWSService");
-		//DESARROLLO CLUSTER >> stub.setAddress("http://sv4044aap.daviviendasv.com:9121/SMG3_HTTP/DACallWSService");
-		//BUS >>stub.setAddress("http://sv4012lap.daviviendasv.com/SMG3_HTTP/DACallWSService");
 		stub.setAddress("http://sv4012lap/SMG3_HTTP/DACallWSService");
 		stub.setNamespaceURI("http://webservices.smg3.bbmass.com.sv/");
 		stub.setReturnType(XMLType.XSD_STRING);//XMLType.XSD_STRING or Qname
