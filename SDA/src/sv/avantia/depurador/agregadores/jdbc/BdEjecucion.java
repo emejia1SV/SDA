@@ -5,7 +5,10 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.hibernate.HibernateException;
+import org.hibernate.Query;
 import org.hibernate.Session;
+
+import sv.avantia.depurador.agregadores.entidades.UsuarioSistema;
 
 /**
  * Clase encargada de poder realizar las operaciones en la base de datos dentro
@@ -34,25 +37,30 @@ public class BdEjecucion implements Serializable {
 	 *            {String} dato de insumo para obtener un listado desde la BD
 	 * @return {java.util.List}
 	 * */
-	public List<?> listData(String query) {
+	public List<?> listData(String query) 
+	{
 		Session session = SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession();
 		List<?> objs = null;
 		try 
 		{
-			
 			session.beginTransaction();
 			objs = session.createQuery(query).list();
 			session.getTransaction().commit();
-		
-		} catch (RuntimeException e) {
+			return objs;
+		} 
+		catch (RuntimeException e) 
+		{
 			logger.error("Error al querer realizar una consulta en la base de datos", e);
 			
-			if (session.getTransaction() != null && session.getTransaction().isActive()) {
+			if (session.getTransaction() != null && session.getTransaction().isActive()) 
+			{
 				try 
 				{
 					// Second try catch as the rollback could fail as well
 					session.getTransaction().rollback();
-				} catch (HibernateException e1) {
+				} 
+				catch (HibernateException e1) 
+				{
 					logger.error("Error al querer realizar rolback a la base de datos", e1);
 				}
 				// throw again the first exception
@@ -71,7 +79,8 @@ public class BdEjecucion implements Serializable {
 	 * @param obj
 	 *            {java.lang.Object} return void
 	 * */
-	public void deleteData(Object obj) {
+	public void deleteData(Object obj) 
+	{
 		Session session = SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession();
 		try 
 		{
@@ -80,7 +89,9 @@ public class BdEjecucion implements Serializable {
 			session.delete(obj);
 			session.getTransaction().commit();
 		
-		} catch (RuntimeException e) {
+		} 
+		catch (RuntimeException e) 
+		{
 			logger.error("Error al querer realizar una eliminación en la base de datos", e);
 			
 			if (session.getTransaction() != null && session.getTransaction().isActive()) {
@@ -88,7 +99,9 @@ public class BdEjecucion implements Serializable {
 				{
 					// Second try catch as the rollback could fail as well
 					session.getTransaction().rollback();
-				} catch (HibernateException e1) {
+				} 
+				catch (HibernateException e1) 
+				{
 					logger.error("Error al querer realizar rolback a la base de datos", e1);
 				}
 				// throw again the first exception
@@ -105,16 +118,17 @@ public class BdEjecucion implements Serializable {
 	 * @param obj
 	 *            {java.lang.Object} return void
 	 * */
-	public void createData(Object obj) {
+	public void createData(Object obj) 
+	{
 		Session session = SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession();
 		try 
 		{
-			
 			session.beginTransaction();
 			session.save(obj);
 			session.getTransaction().commit();
-		
-		} catch (RuntimeException e) {
+		} 
+		catch (RuntimeException e) 
+		{
 			logger.error("Error al querer realizar una insercion a la base de datos", e);
 
 			if (session.getTransaction() != null && session.getTransaction().isActive()) {
@@ -122,7 +136,9 @@ public class BdEjecucion implements Serializable {
 				{
 					// Second try catch as the rollback could fail as well
 					session.getTransaction().rollback();
-				} catch (HibernateException e1) {
+				} 
+				catch (HibernateException e1) 
+				{
 					logger.error("Error al querer realizar rolback a la base de datos", e1);
 				}
 				// throw again the first exception
@@ -139,7 +155,8 @@ public class BdEjecucion implements Serializable {
 	 * @param obj
 	 *            {java.lang.Object} return void
 	 * */
-	public void updateData(Object obj) {
+	public void updateData(Object obj) 
+	{
 		Session session = SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession();
 		try 
 		{
@@ -148,15 +165,20 @@ public class BdEjecucion implements Serializable {
 			session.update(obj);
 			session.getTransaction().commit();
 		
-		} catch (RuntimeException e) {
+		} 
+		catch (RuntimeException e) 
+		{
 			logger.error("Error al querer realizar una actualización a la base de datos", e);
 			
-			if (session.getTransaction() != null && session.getTransaction().isActive()) {
+			if (session.getTransaction() != null && session.getTransaction().isActive()) 
+			{
 				try 
 				{
 					// Second try catch as the rollback could fail as well
 					session.getTransaction().rollback();
-				} catch (HibernateException e1) {
+				} 
+				catch (HibernateException e1) 
+				{
 					logger.error("Error al querer realizar rolback a la base de datos", e1);
 				}
 				// throw again the first exception
@@ -165,4 +187,47 @@ public class BdEjecucion implements Serializable {
 		}
 	}
 
+	/**
+	 * Metodo que nos servira para verificar al usuario dentro de la
+	 * base de datos
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @param obj
+	 *            {java.lang.Object} return void
+	 * */
+	public boolean verificarUsuario(String usuario, String pass) 
+	{
+		boolean existe=false;
+		Session session = SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession();
+		try 
+		{
+			session.beginTransaction();
+			Query query = session.createQuery("from SDA_USUARIO_SISTEMA where usuario = :usuario and contrasenia = :pass");
+			query.setString("usuario", usuario);
+            query.setString("pass", pass);
+            existe = !(((UsuarioSistema) query.uniqueResult())==(null));
+            session.getTransaction().commit();
+		} 
+		catch (RuntimeException e) 
+		{
+			existe=false;
+			logger.error("Error al querer consultar usuario a la base de datos", e);
+			
+			if (session.getTransaction() != null && session.getTransaction().isActive()) 
+			{
+				try 
+				{
+					// Second try catch as the rollback could fail as well
+					session.getTransaction().rollback();
+				} 
+				catch (HibernateException e1) 
+				{
+					logger.error("Error al querer realizar rolback a la base de datos", e1);
+				}
+				// throw again the first exception
+				throw e;
+			}
+		}
+		return existe;
+	}
 }

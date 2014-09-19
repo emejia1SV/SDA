@@ -7,10 +7,23 @@
     
     	<!-- Database connection properties - Driver, URL, user, password -->
         <property name="hibernate.connection.driver_class">oracle.jdbc.driver.OracleDriver</property>
-        <property name="hibernate.connection.url">jdbc:oracle:thin:@172.16.194.131:3871:AGREGADOR</property>
+        <property name="hibernate.connection.url">jdbc:oracle:thin:@192.168.0.100:1521:orcl</property>
+        <property name="hibernate.connection.username">avantia</property>
+        <property name="hibernate.connection.password">avantia</property>
+        <property name="hibernate.default_schema">avantia</property>
+
+		<!--
+		<property name="hibernate.connection.url">jdbc:oracle:thin:@192.168.0.100:1521:orcl</property>
+        <property name="hibernate.connection.username">avantia</property>
+        <property name="hibernate.connection.password">avantia</property>
+        <property name="hibernate.default_schema">avantia</property> 
+		 -->
+		<!-- 
+		<property name="hibernate.connection.url">jdbc:oracle:thin:@172.16.194.131:3871:AGREGADOR</property>
         <property name="hibernate.connection.username">SRDC_AGREGADORES</property>
         <property name="hibernate.connection.password">SRDC_AGR3GAD0R_54DC</property>
         <property name="hibernate.default_schema">SRDC_AGREGADORES</property>
+		 -->
 
 		<property name="hibernate.show_sql">false</property>
         <property name="hibernate.format_sql">true</property>
@@ -34,6 +47,8 @@
         <mapping class="sv.avantia.depurador.agregadores.entidades.Respuesta"  />
         <mapping class="sv.avantia.depurador.agregadores.entidades.LogDepuracion"  />
         <mapping class="sv.avantia.depurador.agregadores.entidades.Clientes_Tel"  />
+        <mapping class="sv.avantia.depurador.agregadores.entidades.ParametrosSistema"  />
+        <mapping class="sv.avantia.depurador.agregadores.entidades.UsuarioSistema"  />
         
     </session-factory>
 </hibernate-configuration>
