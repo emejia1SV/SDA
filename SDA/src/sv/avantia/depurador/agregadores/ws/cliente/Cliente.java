@@ -102,7 +102,7 @@ public class Cliente {
 				
 				for (Parametros param : operation.getParametros()) {
 					System.out.println(param.getNombre());
-					System.out.println(param.getTipo());
+					//System.out.println(param.getTipo());
 				}
 				
 				System.out.println("SOAP response: \n"+invokeOperation(operation));	

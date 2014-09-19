@@ -35,8 +35,6 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMResult;
 
 import org.apache.log4j.Logger;
-import org.hibernate.HibernateException;
-import org.hibernate.Session;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -45,8 +43,10 @@ import sv.avantia.depurador.agregadores.entidades.Agregadores;
 import sv.avantia.depurador.agregadores.entidades.LogDepuracion;
 import sv.avantia.depurador.agregadores.entidades.Metodos;
 import sv.avantia.depurador.agregadores.entidades.Parametros;
+import sv.avantia.depurador.agregadores.entidades.ParametrosSistema;
 import sv.avantia.depurador.agregadores.entidades.Respuesta;
-import sv.avantia.depurador.agregadores.jdbc.SessionFactoryUtil;
+import sv.avantia.depurador.agregadores.entidades.UsuarioSistema;
+import sv.avantia.depurador.agregadores.jdbc.BdEjecucion;
 import sv.avantia.depurador.agregadores.ws.cliente.WebServicesClient;
 
 import com.cladonia.xml.webservice.soap.SOAPClient;
@@ -73,6 +73,13 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	private Agregadores agregador = null;
 	
 	/**
+	 * Instancia del usuario del sistema que esta ejecutando el proceso en este momento.
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * */
+	private UsuarioSistema usuarioSistema = null;
+	
+	/**
 	 * Instancia de un {@link HashMap} para mantener en memoria los parametros
 	 * con los que me serviran de insumo para llenar los parametros requeridos
 	 * por los agregadores
@@ -80,6 +87,14 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 * @author Edwin Mejia - Avantia Consultores
 	 * */
 	private HashMap<String, String> parametrosData = null;
+	
+	/**
+	 * Instancia de la Clase {@link BdEjecucion} que maneja los tipos de
+	 * transacciones, que podemos realizar contra la base de datos.
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * */
+	private BdEjecucion ejecucion = new BdEjecucion();
 
 	/**
 	 * Obtener el appender para la impresión en un archivo de LOG
@@ -156,15 +171,8 @@ public class ConsultaAgregadorPorHilo extends Thread {
 			
 			for (Metodos metodo : getAgregador().getMetodos()) 
 			{
-				//porque voy a meter en un solo metodo el setear paraetros llenare esto aqui ahorita
-				setParametrosData(new HashMap<String, String>());
-				getParametrosData().put("movil", movil);
-				getParametrosData().put("fecha", new Date().toString());
-				getParametrosData().put("accion", "2");//2 es el que ejecuta la liminacion de la lista negra
-				getParametrosData().put("operacion", "2");//2 es el que ejecuta la liminacion de la lista negra
-				getParametrosData().put("pass", metodo.getPass());
-				getParametrosData().put("servicio", "");
-				getParametrosData().put("mcorta", "");
+				//llenar los parametros para los metodos web.
+				llenarParametros(movil, metodo.getContrasenia(), metodo.getUsuario());
 				
 				// este seria primero ejecutar la baja de la lista negra
 				// luego consultar el historial de servicios 
@@ -207,6 +215,23 @@ public class ConsultaAgregadorPorHilo extends Thread {
 				}
 			}
 		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private void llenarParametros(String movil, String pass, String user) {
+		setParametrosData(new HashMap<String, String>());
+		List<ParametrosSistema> parametrosSistemas = (List<ParametrosSistema>) (List<?>)getEjecucion().listData("from SDA_PARAMETROS_SISTEMA");
+		for (ParametrosSistema parametrosSistema : parametrosSistemas) {
+			getParametrosData().put(parametrosSistema.getDato(), parametrosSistema.getValor());
+		}
+		getParametrosData().put("movil", movil);
+		getParametrosData().put("fecha", new Date().toString());
+		getParametrosData().put("pass", pass);
+		getParametrosData().put("user", user);
+		//getParametrosData().put("accion", "2");//2 es el que ejecuta la liminacion de la lista negra
+		//getParametrosData().put("operacion", "2");//2 es el que ejecuta la liminacion de la lista negra
+		//getParametrosData().put("servicio", "");
+		//getParametrosData().put("mcorta", "");
 	}
 
 	public List<String> getMoviles() {
@@ -361,6 +386,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 * @throws Exception 
 	 * */
 	private void talk(Metodos metodo) throws Exception {
+		Document doc = null;
 		try {
 			MessageFactory messageFactory = MessageFactory.newInstance();
 			SOAPMessage msg = messageFactory.createMessage(
@@ -379,12 +405,21 @@ public class ConsultaAgregadorPorHilo extends Thread {
 			// View the output
 			//rp.writeTo(System.out);
 			
-			Document doc = toDocument(rp);
+			doc = toDocument(rp);
 			
 			lecturaCompleta(doc, metodo);
 		} 
 		catch (Exception e) 
 		{
+			LogDepuracion objGuardar = new LogDepuracion();
+			objGuardar.setNumero(getParametrosData().get("movil"));
+			objGuardar.setRespuesta( doc==null ? e.getMessage() : doc.getTextContent() );
+			objGuardar.setEstadoTransaccion("Error al procesar");
+			objGuardar.setFechaTransaccion(new Date());
+			objGuardar.setMetodo(metodo);
+			objGuardar.setUsuarioSistema(getUsuarioSistema());
+			
+			getEjecucion().createData(objGuardar);
 			throw e;
 		}
 	}
@@ -455,11 +490,14 @@ public class ConsultaAgregadorPorHilo extends Thread {
 				if(node.getNodeName().equals(nodeNameToReader))
 				{
 					LogDepuracion objGuardar = new LogDepuracion();
-					objGuardar.setFechaProcesamiento(new Date());
-					objGuardar.setIdError(node.getTextContent());
-					objGuardar.setMetodo(metodo);
 					objGuardar.setNumero(getParametrosData().get("movil"));
-					createData(objGuardar);
+					objGuardar.setRespuesta(node.getTextContent());
+					objGuardar.setEstadoTransaccion("Exitosa o fallida");
+					objGuardar.setFechaTransaccion(new Date());
+					objGuardar.setMetodo(metodo);
+					objGuardar.setUsuarioSistema(getUsuarioSistema());
+					
+					getEjecucion().createData(objGuardar);
 				}
 				
 				if (node.hasChildNodes())
@@ -513,41 +551,6 @@ public class ConsultaAgregadorPorHilo extends Thread {
 		}
 		return result;
 	}
-
-	
-	/**
-	 * Metodo que nos servira para realizar cualquier inserción dentro de la
-	 * base de datos
-	 * 
-	 * @author Edwin Mejia - Avantia Consultores
-	 * @param obj
-	 *            {java.lang.Object} return void
-	 * */
-	public void createData(Object obj) {
-		Session session = SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession();
-		try 
-		{
-			
-			session.beginTransaction();
-			session.save(obj);
-			session.getTransaction().commit();
-		
-		} catch (RuntimeException e) {
-			logger.error("Error al querer realizar una insercion a la base de datos", e);
-
-			if (session.getTransaction() != null && session.getTransaction().isActive()) {
-				try 
-				{
-					// Second try catch as the rollback could fail as well
-					session.getTransaction().rollback();
-				} catch (HibernateException e1) {
-					logger.error("Error al querer realizar rolback a la base de datos", e1);
-				}
-				// throw again the first exception
-				throw e;
-			}
-		}
-	}
 	
 	/**
 	 * getter
@@ -569,5 +572,26 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 */
 	private void setParametrosData(HashMap<String, String> parametrosData) {
 		this.parametrosData = parametrosData;
-	}	
+	}
+
+	/**
+	 * @return the usuarioSistema
+	 */
+	public UsuarioSistema getUsuarioSistema() {
+		return usuarioSistema;
+	}
+
+	/**
+	 * @param usuarioSistema the usuarioSistema to set
+	 */
+	public void setUsuarioSistema(UsuarioSistema usuarioSistema) {
+		this.usuarioSistema = usuarioSistema;
+	}
+
+	/**
+	 * @return the ejecucion
+	 */
+	private BdEjecucion getEjecucion() {
+		return ejecucion;
+	}
 }

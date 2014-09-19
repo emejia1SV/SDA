@@ -1,12 +1,16 @@
 package sv.avantia.depurador.agregadores.entidades;
 
 import java.io.Serializable;
+import java.util.Set;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.OneToMany;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
@@ -28,9 +32,12 @@ public class UsuarioSistema implements Serializable {
 
 	@Column(name = "CONTRASENIA", nullable = false)
 	private String contrasenia;
-	
+
 	@Column(name = "ESTADO", nullable = false)
 	private Integer estado;
+
+	@OneToMany(fetch = FetchType.LAZY, mappedBy = "usuarioSistema", cascade = { CascadeType.ALL })
+	private Set<LogDepuracion> depuraciones;
 
 	/**
 	 * @return the id
@@ -40,7 +47,8 @@ public class UsuarioSistema implements Serializable {
 	}
 
 	/**
-	 * @param id the id to set
+	 * @param id
+	 *            the id to set
 	 */
 	public void setId(Integer id) {
 		this.id = id;
@@ -54,7 +62,8 @@ public class UsuarioSistema implements Serializable {
 	}
 
 	/**
-	 * @param usuario the usuario to set
+	 * @param usuario
+	 *            the usuario to set
 	 */
 	public void setUsuario(String usuario) {
 		this.usuario = usuario;
@@ -68,7 +77,8 @@ public class UsuarioSistema implements Serializable {
 	}
 
 	/**
-	 * @param contrasenia the contrasenia to set
+	 * @param contrasenia
+	 *            the contrasenia to set
 	 */
 	public void setContrasenia(String contrasenia) {
 		this.contrasenia = contrasenia;
@@ -82,10 +92,36 @@ public class UsuarioSistema implements Serializable {
 	}
 
 	/**
-	 * @param estado the estado to set
+	 * @param estado
+	 *            the estado to set
 	 */
 	public void setEstado(Integer estado) {
 		this.estado = estado;
 	}
-	
+
+	/**
+	 * @return the depuraciones
+	 */
+	public Set<LogDepuracion> getDepuraciones() {
+		return depuraciones;
+	}
+
+	/**
+	 * @param depuraciones
+	 *            the depuraciones to set
+	 */
+	public void setDepuraciones(Set<LogDepuracion> depuraciones) {
+		this.depuraciones = depuraciones;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return "UsuarioSistema [id=" + id + ", usuario=" + usuario + "]";
+	}
+
 }

@@ -801,7 +801,7 @@ public class ParametrizarServicio {
 						{
 							Parametros parametro = new Parametros();
 							parametro.setNombre(partName);
-							parametro.setTipo(xmlType.getName());
+							//parametro.setTipo(xmlType.getName());
 							parametros.add(parametro);
 							
 							// build the simple element that will be added to the message
@@ -842,7 +842,7 @@ public class ParametrizarServicio {
 						{
 							Parametros parametro = new Parametros();
 							parametro.setNombre(partName);
-							parametro.setTipo(xmlType.getName());
+							//parametro.setTipo(xmlType.getName());
 							parametros.add(parametro);
 							// build the simple element that will be added to the message
 							Element partElem = document.createElementNS(null,partName);
@@ -1010,7 +1010,7 @@ public class ParametrizarServicio {
 						{
 							Parametros parametro = new Parametros();
 							parametro.setNombre(elementDecl.getName());
-							parametro.setTipo(xmlType.getName());
+							//parametro.setTipo(xmlType.getName());
 							parametros.add(parametro);
 							// add some default content as just a place holder
 							childElem.appendChild(document.createTextNode("_*".concat(elementDecl.getName()).concat("_*")));

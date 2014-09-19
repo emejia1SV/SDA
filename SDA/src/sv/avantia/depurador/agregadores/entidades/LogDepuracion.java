@@ -5,6 +5,7 @@ import java.util.Date;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -20,67 +21,139 @@ public class LogDepuracion implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 
-	@GeneratedValue(strategy=GenerationType.AUTO, generator="Seq_Gen_Log")
-    @SequenceGenerator(name="Seq_Gen_Log", sequenceName="SQ_SDA_DEPURACION_LOG")
+	@GeneratedValue(strategy = GenerationType.AUTO, generator = "Seq_Gen_Log")
+	@SequenceGenerator(name = "Seq_Gen_Log", sequenceName = "SQ_SDA_DEPURACION_LOG")
 	@Id
 	@Column(name = "ID", nullable = false)
 	private Integer id;
 
-	@Column(name = "NUMERO")
+	@Column(name = "SUSCRIPTOR")
 	private String numero;
 
-	@Column(name = "ID_ERROR")
-	private String idError;
+	@Column(name = "RESPUESTA")
+	private String respuesta;
 
-	@Column(name = "FECHA_PROCESAMIENTO")
-	private Date fechaProcesamiento;
+	@Column(name = "ESTADO_TRANSACCION")
+	private String estadoTransaccion;
 
-	@ManyToOne
-	@JoinColumn(name = "ID_METODO_PROCESADO")
+	@Column(name = "FECHA_TRANSACCION")
+	private Date fechaTransaccion;
+
+	@ManyToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "ID_METODO")
 	private Metodos metodo;
 
+	@ManyToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "ID_USUARIO_SISTEMA")
+	private UsuarioSistema usuarioSistema;
+
+	/**
+	 * @return the id
+	 */
 	public Integer getId() {
 		return id;
 	}
 
+	/**
+	 * @param id
+	 *            the id to set
+	 */
 	public void setId(Integer id) {
 		this.id = id;
 	}
 
+	/**
+	 * @return the numero
+	 */
 	public String getNumero() {
 		return numero;
 	}
 
+	/**
+	 * @param numero
+	 *            the numero to set
+	 */
 	public void setNumero(String numero) {
 		this.numero = numero;
 	}
 
-	public String getIdError() {
-		return idError;
+	/**
+	 * @return the respuesta
+	 */
+	public String getRespuesta() {
+		return respuesta;
 	}
 
-	public void setIdError(String idError) {
-		this.idError = idError;
+	/**
+	 * @param respuesta
+	 *            the respuesta to set
+	 */
+	public void setRespuesta(String respuesta) {
+		this.respuesta = respuesta;
 	}
 
-	public Date getFechaProcesamiento() {
-		return fechaProcesamiento;
+	/**
+	 * @return the estadoTransaccion
+	 */
+	public String getEstadoTransaccion() {
+		return estadoTransaccion;
 	}
 
-	public void setFechaProcesamiento(Date fechaProcesamiento) {
-		this.fechaProcesamiento = fechaProcesamiento;
+	/**
+	 * @param estadoTransaccion
+	 *            the estadoTransaccion to set
+	 */
+	public void setEstadoTransaccion(String estadoTransaccion) {
+		this.estadoTransaccion = estadoTransaccion;
 	}
 
+	/**
+	 * @return the fechaTransaccion
+	 */
+	public Date getFechaTransaccion() {
+		return fechaTransaccion;
+	}
+
+	/**
+	 * @param fechaTransaccion
+	 *            the fechaTransaccion to set
+	 */
+	public void setFechaTransaccion(Date fechaTransaccion) {
+		this.fechaTransaccion = fechaTransaccion;
+	}
+
+	/**
+	 * @return the metodo
+	 */
 	public Metodos getMetodo() {
 		return metodo;
 	}
 
+	/**
+	 * @param metodo
+	 *            the metodo to set
+	 */
 	public void setMetodo(Metodos metodo) {
 		this.metodo = metodo;
 	}
 
+	/**
+	 * @return the usuarioSistema
+	 */
+	public UsuarioSistema getUsuarioSistema() {
+		return usuarioSistema;
+	}
+
+	/**
+	 * @param usuarioSistema
+	 *            the usuarioSistema to set
+	 */
+	public void setUsuarioSistema(UsuarioSistema usuarioSistema) {
+		this.usuarioSistema = usuarioSistema;
+	}
+
 	@Override
 	public String toString() {
-		return "Depuracion_bck [id=" + id + "]";
+		return "LogDepuracion [id=" + id + "]";
 	}
 }

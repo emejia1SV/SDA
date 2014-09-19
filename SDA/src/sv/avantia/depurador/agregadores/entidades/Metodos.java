@@ -30,27 +30,38 @@ public class Metodos implements Serializable{
 	@Column(name = "ID", nullable = false)
 	private Integer id;
 
-	@ManyToOne
-	@JoinColumn(name = "ID_AGREGADOR")
-	private Agregadores agregador;
-
 	@Column(name = "NOMBRE", nullable = false)
 	private String nombre;
 
-	@Column(name = "INPUTMESSAGENAME")
-	private String inputMessageName;
+	@Column(name = "USUARIO")
+	private String usuario;
+
+	@Column(name = "CONTRASENIA")
+	private String contrasenia;
 	
 	@Column(name = "END_POINT", nullable = false)
 	private String endPoint;
+	
+	@Column(name = "SEGURIDAD")
+	private Integer seguridad;
+	
+	@Column(name = "ORDEN_EJECUCION")
+	private Integer ordenEjecucion;
 
 	@Column(name = "INPUTMESSAGETEXT", nullable = false)
 	private String inputMessageText;
-
-	@Column(name = "NAMESPACEURI")
-	private String namespaceURI;
+	
+	@Column(name = "INPUTMESSAGENAME")
+	private String inputMessageName;
+	
+	@Column(name = "SERVICE_NAME")
+	private String serviceName;
 
 	@Column(name = "SOAPACTIONURI")
 	private String soapActionURI;
+	
+	@Column(name = "NAMESPACEURI")
+	private String namespaceURI;
 
 	@Column(name = "STYLE")
 	private String style;
@@ -66,24 +77,10 @@ public class Metodos implements Serializable{
 
 	@Column(name = "WSDL_AGREGADOR")
 	private String wsdl_Agregador;
-
-	@Column(name = "USUARIO")
-	private String usuario;
-
-	@Column(name = "CONTRASENIA")
-	private String contrasenia;
-
-	@Column(name = "SERVICE_NAME")
-	private String serviceName;
 	
-	@Column(name = "PASS")
-	private String pass;
-	
-	@Column(name = "SEGURIDAD")
-	private Integer seguridad;
-	
-	@Column(name = "ORDEN_EJECUCION")
-	private Integer ordenEjecucion;
+	@ManyToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "ID_AGREGADOR")
+	private Agregadores agregador;
 
 	@OneToMany(fetch = FetchType.EAGER, mappedBy = "metodo", cascade = { CascadeType.ALL })
 	private Set<Parametros> parametros;
@@ -262,14 +259,6 @@ public class Metodos implements Serializable{
 
 	public void setOrdenEjecucion(Integer ordenEjecucion) {
 		this.ordenEjecucion = ordenEjecucion;
-	}
-	
-	public String getPass() {
-		return pass;
-	}
-
-	public void setPass(String pass) {
-		this.pass = pass;
 	}
 
 	@Override

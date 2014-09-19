@@ -4,6 +4,7 @@ import java.io.Serializable;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -25,13 +26,10 @@ public class Respuesta implements Serializable {
 	@Column(name = "ID", nullable = false)
 	private Integer id;
 
-	@Column(name = "TIPO", nullable = false)
-	private String tipo;
-
 	@Column(name = "NOMBRE", nullable = false)
 	private String nombre;
 
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "ID_METODO")
 	private Metodos metodo;
 
@@ -41,14 +39,6 @@ public class Respuesta implements Serializable {
 
 	public void setId(Integer id) {
 		this.id = id;
-	}
-
-	public String getTipo() {
-		return tipo;
-	}
-
-	public void setTipo(String tipo) {
-		this.tipo = tipo;
 	}
 
 	public String getNombre() {

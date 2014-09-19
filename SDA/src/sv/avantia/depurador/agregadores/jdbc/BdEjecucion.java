@@ -230,4 +230,44 @@ public class BdEjecucion implements Serializable {
 		}
 		return existe;
 	}
+	
+	/**
+	 * Metodo que devolvera un dato especifico de un query especifico
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @param obj
+	 *            {java.lang.Object} return void
+	 * */
+	public Object obtenerDato(String queryCompleto) 
+	{
+		Object out = null;
+		Session session = SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession();
+		try 
+		{
+			session.beginTransaction();
+			Query query = session.createQuery(queryCompleto);
+			out = query.uniqueResult();
+            session.getTransaction().commit();
+		} 
+		catch (RuntimeException e) 
+		{
+			logger.error("Error al querer consultar un valor de la base de datos", e);
+			
+			if (session.getTransaction() != null && session.getTransaction().isActive()) 
+			{
+				try 
+				{
+					// Second try catch as the rollback could fail as well
+					session.getTransaction().rollback();
+				} 
+				catch (HibernateException e1) 
+				{
+					logger.error("Error al querer realizar rolback a la base de datos", e1);
+				}
+				// throw again the first exception
+				throw e;
+			}
+		}
+		return out;
+	}
 }

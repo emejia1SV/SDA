@@ -36,5 +36,4 @@ public class Clientes_Tel implements Serializable {
 	public void setNumero(String numero) {
 		this.numero = numero;
 	}
-
 }

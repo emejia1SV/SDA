@@ -36,7 +36,7 @@ public class Agregadores implements Serializable {
 	@Column(name = "NOMBRE_AGREGADOR", nullable = false)
 	private String nombre_agregador;
 
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "ID_PAIS")
 	private Pais pais;
 

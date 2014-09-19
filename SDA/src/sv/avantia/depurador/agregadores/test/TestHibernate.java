@@ -23,6 +23,50 @@ public class TestHibernate {
 	/* Get actual class name to be printed on */
 	public static Logger logger = Logger.getLogger(TestHibernate.class);
 
+	/**
+	 * @param args
+	 */	
+	public static void main(String[] args) {
+		try {
+			
+			llenarTablaLogs();
+			
+			if(SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().isOpen())
+	        	SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().close();
+	        	
+	        if(!SessionFactoryUtil.getSessionAnnotationFactory().isClosed())
+	        	SessionFactoryUtil.getSessionAnnotationFactory().close();
+	        
+		} catch (Exception e) {
+			if(SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().isOpen())
+	        	SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().close();
+	        	
+	        if(!SessionFactoryUtil.getSessionAnnotationFactory().isClosed())
+	        	SessionFactoryUtil.getSessionAnnotationFactory().close();
+	        
+	        e.printStackTrace();
+		}
+		
+		
+	}
+	
+	@SuppressWarnings("unchecked")
+	public static void llenarTablaLogs() {
+		try 
+		{
+			List<LogDepuracion> depuracions = ((List<LogDepuracion>) (List<?>) listData("FROM SDA_LOG_DEPURACION"));
+			System.out.println(depuracions.size());
+			for (LogDepuracion logDepuracion : depuracions) {
+				System.out.println(logDepuracion.getMetodo().getId());
+			}
+		} 
+		catch (Exception e) 
+		{
+			System.err.println("Error:No se pudo cargar la tabla de depuracion");
+		}
+	}
+	
+	
 	public static void testSMTSave() {
 		
 		try {
@@ -68,19 +112,19 @@ public class TestHibernate {
 		parametros1.setId(20);
 		parametros1.setMetodo(metodo2);
 		parametros1.setNombre("_*tns:FA_*");
-		parametros1.setTipo("java.lang.String");
+		//parametros1.setTipo("java.lang.String");
 		
 		Parametros parametros2 = new Parametros();
 		parametros2.setId(21);
 		parametros2.setMetodo(metodo2);
 		parametros2.setNombre("_*tns:OA_*");
-		parametros2.setTipo("java.lang.String");
+		//parametros2.setTipo("java.lang.String");
 		
 		Parametros parametros3 = new Parametros();
 		parametros3.setId(22);
 		parametros3.setMetodo(metodo2);
 		parametros3.setNombre("_*msisdn_*");
-		parametros3.setTipo("java.lang.String");
+		//parametros3.setTipo("java.lang.String");
 		
 		createData(parametros1);
 		createData(parametros2);
@@ -90,7 +134,7 @@ public class TestHibernate {
 		respuesta2.setId(1);
 		respuesta2.setNombre("AddGrayListResponse");
 		//respuesta.setPosicion(2);
-		respuesta2.setTipo("java.lang.String");
+		//respuesta2.setTipo("java.lang.String");
 		respuesta2.setMetodo(metodo2);
 		
 		createData(respuesta2);
@@ -118,19 +162,19 @@ public class TestHibernate {
 		parametros4.setId(23);
 		parametros4.setMetodo(metodo2);
 		parametros4.setNombre("_*tns:FA_*");
-		parametros4.setTipo("java.lang.String");
+		//parametros4.setTipo("java.lang.String");
 		
 		Parametros parametros5 = new Parametros();
 		parametros5.setId(24);
 		parametros5.setMetodo(metodo2);
 		parametros5.setNombre("_*tns:OA_*");
-		parametros5.setTipo("java.lang.String");
+		//parametros5.setTipo("java.lang.String");
 		
 		Parametros parametros6 = new Parametros();
 		parametros6.setId(25);
 		parametros6.setMetodo(metodo2);
 		parametros6.setNombre("_*msisdn_*");
-		parametros6.setTipo("java.lang.String");
+		//parametros6.setTipo("java.lang.String");
 		
 		createData(parametros4);
 		createData(parametros5);
@@ -139,7 +183,7 @@ public class TestHibernate {
 		Respuesta respuesta3 = new Respuesta();
 		respuesta3.setId(2);
 		respuesta3.setNombre("DeleteGrayListResponse");
-		respuesta3.setTipo("java.lang.String");
+		//respuesta3.setTipo("java.lang.String");
 		respuesta3.setMetodo(metodo3);
 		
 		createData(respuesta3);
@@ -163,37 +207,10 @@ public class TestHibernate {
 		}
 	}
 	
-	/**
-	 * @param args
-	 */	
-	public static void main(String[] args) {
-		try {
-			
-			
-			load100();
-			load200();
-			load300();
-			
-			if(SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().isOpen())
-	        	SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().close();
-	        	
-	        if(!SessionFactoryUtil.getSessionAnnotationFactory().isClosed())
-	        	SessionFactoryUtil.getSessionAnnotationFactory().close();
-	        
-		} catch (Exception e) {
-			if(SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().isOpen())
-	        	SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().close();
-	        	
-	        if(!SessionFactoryUtil.getSessionAnnotationFactory().isClosed())
-	        	SessionFactoryUtil.getSessionAnnotationFactory().close();
-	        
-	        e.printStackTrace();
-		}
-		
-		
-	}
 	
 	
+	
+	@SuppressWarnings("unused")
 	private static void load100() {
 		
 		
@@ -207,6 +224,7 @@ public class TestHibernate {
 		SessionFactoryUtil.closeSession();
 	}
 
+	@SuppressWarnings("unused")
 	private static void load200() {
 		for (int i = 101; i < 200; i++) {
 			LogDepuracion depuracion = new LogDepuracion();
@@ -217,6 +235,7 @@ public class TestHibernate {
 		SessionFactoryUtil.closeSession();
 	}
 
+	@SuppressWarnings("unused")
 	private static void load300() {
 		for (int i = 201; i < 300; i++) {
 			LogDepuracion depuracion = new LogDepuracion();
@@ -634,7 +653,7 @@ public class TestHibernate {
 		//parametros.setInsumo("insumo1");
 		parametros.setMetodo(metodo);
 		parametros.setNombre("movil");
-		parametros.setTipo("java.lang.String");
+		//parametros.setTipo("java.lang.String");
 		
 		createData(parametros);
 		
@@ -642,7 +661,7 @@ public class TestHibernate {
 		respuesta.setId(1);
 		respuesta.setNombre("ni idea");
 		//respuesta.setPosicion(2);
-		respuesta.setTipo("java.lang.String");
+		//respuesta.setTipo("java.lang.String");
 		respuesta.setMetodo(metodo);
 		
 		createData(respuesta);
