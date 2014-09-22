@@ -3,6 +3,7 @@ package sv.avantia.depurador.agregadores.hilo;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -33,6 +34,8 @@ import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMResult;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
@@ -95,6 +98,14 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 * @author Edwin Mejia - Avantia Consultores
 	 * */
 	private BdEjecucion ejecucion = new BdEjecucion();
+
+	/**
+	 * Instancia que mantiene en memoria el tipo de depuracion que se esta
+	 * realizando Tipo de depuracion ARCHIVO MASIVA UNITARIA
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * */
+	private String tipoDepuracion;
 
 	/**
 	 * Obtener el appender para la impresión en un archivo de LOG
@@ -179,9 +190,9 @@ public class ConsultaAgregadorPorHilo extends Thread {
 				// buscar en ese historial de servicios los que esten activos 
 				// y de esos activos seria ejecutar la baja para cada uno de dichos servicios
 				
-				//logger.info(">>>> " + tamanio);
-				//logger.info(">>>> " + ordenEjecucion);
-				//logger.info(">>>> " + metodo.getOrdenEjecucion());
+				logger.info(">>>> " + tamanio);
+				logger.info(">>>> " + ordenEjecucion);
+				logger.info(">>>> " + metodo.getOrdenEjecucion());
 				
 				//verificar esto en contra del tamaño de la lista  de metodo para hacer un bucle hasta ejecutarse en el orden deseado
 				if(ordenEjecucion == metodo.getOrdenEjecucion() && ordenEjecucion <= tamanio)
@@ -190,11 +201,14 @@ public class ConsultaAgregadorPorHilo extends Thread {
 					{
 						for (Parametros parametro : metodo.getParametros()) 
 						{
-							metodo.setInputMessageText(metodo.getInputMessageText().replace(("_*" + parametro.getNombre() + "_*").toString() , getParametrosData().get(parametro.getNombre())));
+							metodo.setInputMessageText(metodo.getInputMessageText().replace(("_*" + parametro.getNombre() + "_*").toString() , (getParametrosData().get(parametro.getNombre())==null?"":getParametrosData().get(parametro.getNombre()))  ));
 						}
 					}
 					
 					//con el resultado debo llenar mas el getParametrosData().put("algo debo poner sgun paamerizacion de respuesta", respuesta.getposiciion);
+					logger.info("Seguridad " + metodo.getSeguridad());
+					
+					logger.info(metodo.getInputMessageText());
 					if (metodo.getSeguridad() == 0) 
 					{
 						invokeOperation(metodo, null);
@@ -225,6 +239,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 			getParametrosData().put(parametrosSistema.getDato(), parametrosSistema.getValor());
 		}
 		getParametrosData().put("movil", movil);
+		getParametrosData().put("date", new Date().toString());
 		getParametrosData().put("fecha", new Date().toString());
 		getParametrosData().put("pass", pass);
 		getParametrosData().put("user", user);
@@ -362,6 +377,8 @@ public class ConsultaAgregadorPorHilo extends Thread {
 				} 
 		};
 
+		logger.info("Generando la salida con seguridad");
+		
 		SSLContext sc = SSLContext.getInstance("SSL");
 		sc.init(null, trustAllCerts, new SecureRandom());
 		HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
@@ -399,24 +416,30 @@ public class ConsultaAgregadorPorHilo extends Thread {
 			// Trust to certificates
 			doTrustToCertificates();
 
+			logger.info("Enviando el mensaje");
 			// SOAPMessage rp = conn.call(msg, urlval);
 			SOAPMessage rp = sendMessage(msg, metodo.getEndPoint());
 
 			// View the output
 			//rp.writeTo(System.out);
-			
+			logger.info("Respuesta recibida");
+			logger.info(rp.toString());
 			doc = toDocument(rp);
+			
+			
 			
 			lecturaCompleta(doc, metodo);
 		} 
 		catch (Exception e) 
 		{
+			logger.error("Error al nvocar con seguridad " + e.getMessage());
 			LogDepuracion objGuardar = new LogDepuracion();
 			objGuardar.setNumero(getParametrosData().get("movil"));
 			objGuardar.setRespuesta( doc==null ? e.getMessage() : doc.getTextContent() );
 			objGuardar.setEstadoTransaccion("Error al procesar");
 			objGuardar.setFechaTransaccion(new Date());
 			objGuardar.setMetodo(metodo);
+			objGuardar.setTipoTransaccion(getTipoDepuracion());
 			objGuardar.setUsuarioSistema(getUsuarioSistema());
 			
 			getEjecucion().createData(objGuardar);
@@ -445,6 +468,35 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	}
 	
 	/**
+	 * Metodo para la transformación de un {@link Document} Response a un
+	 * {@link String} y hacer mas facil la busqueda del dato
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @param soapMsg
+	 *            {@link SOAPMessage}
+	 * @return {@link Document}
+	 * */
+	public String getStringFromDocument(Document doc)
+	{
+	    try
+	    {
+	       DOMSource domSource = new DOMSource(doc);
+	       StringWriter writer = new StringWriter();
+	       StreamResult result = new StreamResult(writer);
+	       TransformerFactory tf = TransformerFactory.newInstance();
+	       Transformer transformer = tf.newTransformer();
+	       transformer.transform(domSource, result);
+	       return writer.toString();
+	    }
+	    catch(TransformerException ex)
+	    {
+	       ex.printStackTrace();
+	       return null;
+	    }
+	} 
+
+	
+	/**
 	 * Metodo que recibe el documento Soap Response y este hace la lectura de la
 	 * lista de nodos que obtiene para procesarlos y buscar la {@link Respuesta}
 	 * deseada
@@ -460,13 +512,32 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 * */
 	private void lecturaCompleta(Document doc, Metodos metodo) {
 		doc.getDocumentElement().normalize();
+		logger.info("A buscar cada respuesta");
 		for (Respuesta respuesta : metodo.getRespuestas()) {
 			if (doc.getDocumentElement().hasChildNodes()) {
 				NodeList nodeList = doc.getDocumentElement().getChildNodes();
 				lecturaListadoNodos(nodeList, respuesta.getNombre(), metodo);
+				
+				if(!validateBrowserResponse){
+					LogDepuracion objGuardar = new LogDepuracion();
+					objGuardar.setNumero(getParametrosData().get("movil"));
+					objGuardar.setRespuesta("No se encontro el nodo " + respuesta.getNombre() +" dentro del documento " + getStringFromDocument(doc));
+					objGuardar.setEstadoTransaccion("fallida");
+					objGuardar.setFechaTransaccion(new Date());
+					objGuardar.setMetodo(metodo);
+					objGuardar.setTipoTransaccion(getTipoDepuracion());
+					objGuardar.setUsuarioSistema(getUsuarioSistema());
+					
+					logger.info("A guardar a la bd la respuesta");
+					getEjecucion().createData(objGuardar);
+				}else{
+					validateBrowserResponse = false;
+				}
 			}
 		}
 	}
+	
+	boolean validateBrowserResponse = false;
 
 	/**
 	 * Metodo recursivo, para la lectura de nodos del Soap Response que se ha
@@ -484,6 +555,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 * @return {@link Void}
 	 * */
 	private void lecturaListadoNodos(NodeList nodeList, String nodeNameToReader, Metodos metodo) {
+		logger.info("buscando el nodo " + nodeNameToReader);
 		for (int i = 0; i < nodeList.getLength(); i++) {
 			Node node = nodeList.item(i);
 			if (node.getNodeType() == Node.ELEMENT_NODE) {
@@ -492,12 +564,16 @@ public class ConsultaAgregadorPorHilo extends Thread {
 					LogDepuracion objGuardar = new LogDepuracion();
 					objGuardar.setNumero(getParametrosData().get("movil"));
 					objGuardar.setRespuesta(node.getTextContent());
-					objGuardar.setEstadoTransaccion("Exitosa o fallida");
+					objGuardar.setEstadoTransaccion("Exitosa");
 					objGuardar.setFechaTransaccion(new Date());
 					objGuardar.setMetodo(metodo);
+					objGuardar.setTipoTransaccion(getTipoDepuracion());
 					objGuardar.setUsuarioSistema(getUsuarioSistema());
 					
+					logger.info("A guardar a la bd la respuesta");
 					getEjecucion().createData(objGuardar);
+					
+					validateBrowserResponse = true;
 				}
 				
 				if (node.hasChildNodes())
@@ -593,5 +669,19 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 */
 	private BdEjecucion getEjecucion() {
 		return ejecucion;
+	}
+
+	/**
+	 * @return the tipoDepuracion
+	 */
+	public String getTipoDepuracion() {
+		return tipoDepuracion;
+	}
+
+	/**
+	 * @param tipoDepuracion the tipoDepuracion to set
+	 */
+	public void setTipoDepuracion(String tipoDepuracion) {
+		this.tipoDepuracion = tipoDepuracion;
 	}
 }

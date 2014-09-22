@@ -7,6 +7,7 @@ import org.apache.log4j.Logger;
 
 import sv.avantia.depurador.agregadores.entidades.Agregadores;
 import sv.avantia.depurador.agregadores.entidades.Pais;
+import sv.avantia.depurador.agregadores.entidades.UsuarioSistema;
 import sv.avantia.depurador.agregadores.hilo.ConsultaAgregadorPorHilo;
 import sv.avantia.depurador.agregadores.jdbc.BdEjecucion;
 import sv.avantia.depurador.agregadores.jdbc.SessionFactoryUtil;
@@ -68,6 +69,8 @@ public class Iniciar {
 						ConsultaAgregadorPorHilo hilo = new ConsultaAgregadorPorHilo();
 						hilo.setMoviles(moviles);
 						hilo.setAgregador(agregador);
+						hilo.setTipoDepuracion("MASIVA");
+						hilo.setUsuarioSistema(usuarioMaestro());
 						hilo.start();
 					}
 				}
@@ -85,6 +88,16 @@ public class Iniciar {
 			setEjecucion(null);
 			logger.info("finalizo la depuración de los numeros en " + ((System.currentTimeMillis() - init)/1000)  + "Segundos");
 		}
+	}
+	
+	/**
+	 * Obtener el usuario del sistema maestro
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * */
+	private static UsuarioSistema usuarioMaestro()
+	{
+		return (UsuarioSistema) getEjecucion().obtenerDato("FROM SDA_USUARIO_SISTEMA WHERE ID = 1");
 	}
 	
 	/**

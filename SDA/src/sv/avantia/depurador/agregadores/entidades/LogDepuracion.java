@@ -39,6 +39,9 @@ public class LogDepuracion implements Serializable {
 	@Column(name = "FECHA_TRANSACCION")
 	private Date fechaTransaccion;
 
+	@Column(name = "TIPO_TRANSACCION")
+	private String tipoTransaccion;
+
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "ID_METODO")
 	private Metodos metodo;
@@ -150,6 +153,21 @@ public class LogDepuracion implements Serializable {
 	 */
 	public void setUsuarioSistema(UsuarioSistema usuarioSistema) {
 		this.usuarioSistema = usuarioSistema;
+	}
+
+	/**
+	 * @return the tipoTransaccion
+	 */
+	public String getTipoTransaccion() {
+		return tipoTransaccion;
+	}
+
+	/**
+	 * @param tipoTransaccion
+	 *            the tipoTransaccion to set
+	 */
+	public void setTipoTransaccion(String tipoTransaccion) {
+		this.tipoTransaccion = tipoTransaccion;
 	}
 
 	@Override
