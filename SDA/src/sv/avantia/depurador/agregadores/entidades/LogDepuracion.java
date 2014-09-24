@@ -22,7 +22,7 @@ public class LogDepuracion implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	@GeneratedValue(strategy = GenerationType.AUTO, generator = "Seq_Gen_Log")
-	@SequenceGenerator(name = "Seq_Gen_Log", sequenceName = "SQ_SDA_DEPURACION_LOG")
+	@SequenceGenerator(name = "Seq_Gen_Log", sequenceName = "SQ_SDA_LOG_DEPURACION")
 	@Id
 	@Column(name = "ID", nullable = false)
 	private Integer id;
