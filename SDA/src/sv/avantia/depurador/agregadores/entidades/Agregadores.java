@@ -18,7 +18,11 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+
 @Entity(name = "SDA_AGREGADORES")
+@FilterDef(name="SDA_AGREGADORES_FILTER", defaultCondition="ESTADO = 1")
 @Table(name = "SDA_AGREGADORES", uniqueConstraints = { @UniqueConstraint(columnNames = { "ID" }) })
 public class Agregadores implements Serializable {
 
@@ -41,6 +45,7 @@ public class Agregadores implements Serializable {
 	private Pais pais;
 
 	@OneToMany(fetch = FetchType.EAGER, mappedBy = "agregador", cascade = { CascadeType.ALL })
+	@Filter(name="SDA_METODOS_FILTER")
 	private Set<Metodos> metodos;
 
 	public Agregadores() {

@@ -32,6 +32,9 @@ public class LogDepuracion implements Serializable {
 
 	@Column(name = "RESPUESTA")
 	private String respuesta;
+	
+	@Column(name = "ENVIO")
+	private String envio;
 
 	@Column(name = "ESTADO_TRANSACCION")
 	private String estadoTransaccion;
@@ -170,6 +173,20 @@ public class LogDepuracion implements Serializable {
 		this.tipoTransaccion = tipoTransaccion;
 	}
 
+	/**
+	 * @return the envio
+	 */
+	public String getEnvio() {
+		return envio;
+	}
+
+	/**
+	 * @param envio the envio to set
+	 */
+	public void setEnvio(String envio) {
+		this.envio = envio;
+	}
+	
 	@Override
 	public String toString() {
 		return "LogDepuracion [id=" + id + "]";

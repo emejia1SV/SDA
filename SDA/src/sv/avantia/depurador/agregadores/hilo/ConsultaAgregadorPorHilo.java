@@ -7,9 +7,13 @@ import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -38,12 +42,14 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import org.apache.log4j.Logger;
+import org.apache.xerces.impl.dv.util.Base64;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import sv.avantia.depurador.agregadores.entidades.Agregadores;
 import sv.avantia.depurador.agregadores.entidades.LogDepuracion;
+//import sv.avantia.depurador.agregadores.entidades.LogDepuracion;
 import sv.avantia.depurador.agregadores.entidades.Metodos;
 import sv.avantia.depurador.agregadores.entidades.Parametros;
 import sv.avantia.depurador.agregadores.entidades.ParametrosSistema;
@@ -182,6 +188,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 			
 			for (Metodos metodo : getAgregador().getMetodos()) 
 			{
+				System.out.println("Procesando... " + metodo.getNombre());
 				//llenar los parametros para los metodos web.
 				llenarParametros(movil, metodo.getContrasenia(), metodo.getUsuario());
 				
@@ -222,8 +229,6 @@ public class ConsultaAgregadorPorHilo extends Thread {
 				}
 				else
 				{
-					//logger.info(">> " + tamanio);
-					//logger.info(">> " + ordenEjecucion);
 					if(ordenEjecucion>tamanio)
 						seguir = false;
 				}
@@ -232,7 +237,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	}
 
 	@SuppressWarnings("unchecked")
-	private void llenarParametros(String movil, String pass, String user) {
+	private void llenarParametros(String movil, String pass, String user) throws NoSuchAlgorithmException {
 		setParametrosData(new HashMap<String, String>());
 		List<ParametrosSistema> parametrosSistemas = (List<ParametrosSistema>) (List<?>)getEjecucion().listData("from SDA_PARAMETROS_SISTEMA");
 		for (ParametrosSistema parametrosSistema : parametrosSistemas) {
@@ -241,13 +246,30 @@ public class ConsultaAgregadorPorHilo extends Thread {
 		getParametrosData().put("movil", movil);
 		getParametrosData().put("date", new Date().toString());
 		getParametrosData().put("fecha", new Date().toString());
+		getParametrosData().put("dateSMT", fechaFormated());
+		getParametrosData().put("nonce", java.util.UUID.randomUUID().toString());
 		getParametrosData().put("pass", pass);
 		getParametrosData().put("user", user);
+		getParametrosData().put("passSMT", contraseniaSMT(getParametrosData().get("nonce"), getParametrosData().get("dateSMT"), pass));
+		
+		
 		//getParametrosData().put("accion", "2");//2 es el que ejecuta la liminacion de la lista negra
 		//getParametrosData().put("operacion", "2");//2 es el que ejecuta la liminacion de la lista negra
 		//getParametrosData().put("servicio", "");
 		//getParametrosData().put("mcorta", "");
 	}
+	
+	private String contraseniaSMT(String nonce, String timestamp, String pass) throws NoSuchAlgorithmException{
+		String concatenacion = nonce.concat(timestamp).concat(pass);
+		MessageDigest md = MessageDigest.getInstance("SHA-1");
+		md.update(concatenacion.getBytes());
+		return Base64.encode(md.digest());
+	}
+	
+	private String fechaFormated(){
+    	SimpleDateFormat dateT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+    	return dateT.format(Calendar.getInstance().getTime());
+    }
 
 	public List<String> getMoviles() {
 		return moviles;
@@ -342,7 +364,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 		}
 		catch (Exception e)
 		{
-			logger.error("Problemas al invocar el metodo in seguridad", e);
+			logger.error("Problemas al invocar el metodo Sin seguridad", e);
 			throw new WSDLException(e);
 		}
 	}
@@ -439,6 +461,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 			objGuardar.setEstadoTransaccion("Error al procesar");
 			objGuardar.setFechaTransaccion(new Date());
 			objGuardar.setMetodo(metodo);
+			objGuardar.setEnvio(metodo.getInputMessageText());
 			objGuardar.setTipoTransaccion(getTipoDepuracion());
 			objGuardar.setUsuarioSistema(getUsuarioSistema());
 			
@@ -525,8 +548,15 @@ public class ConsultaAgregadorPorHilo extends Thread {
 					objGuardar.setEstadoTransaccion("fallida");
 					objGuardar.setFechaTransaccion(new Date());
 					objGuardar.setMetodo(metodo);
+					objGuardar.setEnvio(metodo.getInputMessageText());
 					objGuardar.setTipoTransaccion(getTipoDepuracion());
-					objGuardar.setUsuarioSistema(getUsuarioSistema());
+					if(getUsuarioSistema().getId()==null){
+						logger.warn("El usuario no pudo ser obtenido; para no detener el flujo, se guardara con el usuario maestro");
+						objGuardar.setUsuarioSistema(getEjecucion().usuarioMaestro());
+					}else{
+						objGuardar.setUsuarioSistema(getUsuarioSistema());
+					}
+					
 					
 					logger.info("A guardar a la bd la respuesta");
 					getEjecucion().createData(objGuardar);
@@ -567,6 +597,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 					objGuardar.setEstadoTransaccion("Exitosa");
 					objGuardar.setFechaTransaccion(new Date());
 					objGuardar.setMetodo(metodo);
+					objGuardar.setEnvio(metodo.getInputMessageText());
 					objGuardar.setTipoTransaccion(getTipoDepuracion());
 					objGuardar.setUsuarioSistema(getUsuarioSistema());
 					

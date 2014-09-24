@@ -7,7 +7,6 @@ import org.apache.log4j.Logger;
 
 import sv.avantia.depurador.agregadores.entidades.Agregadores;
 import sv.avantia.depurador.agregadores.entidades.Pais;
-import sv.avantia.depurador.agregadores.entidades.UsuarioSistema;
 import sv.avantia.depurador.agregadores.hilo.ConsultaAgregadorPorHilo;
 import sv.avantia.depurador.agregadores.jdbc.BdEjecucion;
 import sv.avantia.depurador.agregadores.jdbc.SessionFactoryUtil;
@@ -19,7 +18,6 @@ public class Iniciar {
 	 * Iniciar la configuracion para los apender del LOG4J
 	 * 
 	 * @author Edwin Mejia - Avantia Consultores
-	 * 
 	 * */
 	static {
 		Log4jInit.init();
@@ -54,23 +52,23 @@ public class Iniciar {
 			//iniciar la instancia a las operaciones a la base de datos
 			setEjecucion(new BdEjecucion());
 			
-			//consultar los numeros
-			moviles = obtenerNumeros();
-			
-			if(moviles.size()>0)
+			// consultar la parametrización
+			for (Pais pais : obtenerParmetrizacion()) 
 			{
-				//consultar la parametrización
-				for (Pais pais : obtenerParmetrizacion()) 
+				// consultar los numeros
+				moviles = obtenerNumeros(pais.getCodigo());
+
+				if (moviles.size() > 0) 
 				{
 					System.out.println("Procesando... " + pais.getNombre());
 					for (Agregadores agregador : pais.getAgregadores()) 
 					{
-						//abrir un hilo pr cada agregador parametrizados
+						// abrir un hilo pr cada agregador parametrizados
 						ConsultaAgregadorPorHilo hilo = new ConsultaAgregadorPorHilo();
 						hilo.setMoviles(moviles);
 						hilo.setAgregador(agregador);
 						hilo.setTipoDepuracion("MASIVA");
-						hilo.setUsuarioSistema(usuarioMaestro());
+						hilo.setUsuarioSistema(getEjecucion().usuarioMaestro());
 						hilo.start();
 					}
 				}
@@ -91,16 +89,6 @@ public class Iniciar {
 	}
 	
 	/**
-	 * Obtener el usuario del sistema maestro
-	 * 
-	 * @author Edwin Mejia - Avantia Consultores
-	 * */
-	private static UsuarioSistema usuarioMaestro()
-	{
-		return (UsuarioSistema) getEjecucion().obtenerDato("FROM SDA_USUARIO_SISTEMA WHERE ID = 1");
-	}
-	
-	/**
 	 * Obtener el insumo de numeros que deberan ser procesados para su
 	 * depuracion
 	 * 
@@ -111,9 +99,9 @@ public class Iniciar {
 	 *             consulta a la base de datos
 	 * */
 	@SuppressWarnings("unchecked")
-	public static List<String> obtenerNumeros() throws Exception 
+	public static List<String> obtenerNumeros(String codigo) throws Exception 
 	{
-		return (List<String>)(List<?>) getEjecucion().listData("select b.numero from CLIENTE_TEL b");
+		return (List<String>)(List<?>) getEjecucion().listData("select b.numero from CLIENTE_TEL b where b.numero like '"+ codigo +"%'");
 	}
 	
 	/**
@@ -128,7 +116,7 @@ public class Iniciar {
 	@SuppressWarnings("unchecked")
 	public static List<Pais> obtenerParmetrizacion() throws Exception 
 	{
-		return (List<Pais>)(List<?>) getEjecucion().listData("FROM SDA_PAISES");
+		return (List<Pais>)(List<?>) getEjecucion().listData("FROM SDA_PAISES WHERE STATUS = 1");
 	}
 
 	/**

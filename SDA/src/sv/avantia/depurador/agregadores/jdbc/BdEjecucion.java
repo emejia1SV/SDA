@@ -270,4 +270,14 @@ public class BdEjecucion implements Serializable {
 		}
 		return out;
 	}
+	
+	/**
+	 * Obtener el usuario del sistema maestro
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * */
+	public UsuarioSistema usuarioMaestro()
+	{
+		return (UsuarioSistema) obtenerDato("FROM SDA_USUARIO_SISTEMA WHERE ID = 1");
+	}
 }

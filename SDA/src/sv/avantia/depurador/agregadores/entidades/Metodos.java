@@ -18,7 +18,10 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 
+import org.hibernate.annotations.FilterDef;
+
 @Entity(name = "SDA_METODOS")
+@FilterDef(name="SDA_METODOS_FILTER", defaultCondition="ESTADO = 1")
 @Table(name = "SDA_METODOS", uniqueConstraints = { @UniqueConstraint(columnNames = { "ID" }) })
 public class Metodos implements Serializable{
 
@@ -53,6 +56,9 @@ public class Metodos implements Serializable{
 	
 	@Column(name = "INPUTMESSAGENAME")
 	private String inputMessageName;
+	
+	@Column(name = "ESTADO")
+	private Integer estado;
 	
 	@Column(name = "SERVICE_NAME")
 	private String serviceName;
@@ -261,9 +267,22 @@ public class Metodos implements Serializable{
 		this.ordenEjecucion = ordenEjecucion;
 	}
 
+	/**
+	 * @return the estado
+	 */
+	public Integer getEstado() {
+		return estado;
+	}
+
+	/**
+	 * @param estado the estado to set
+	 */
+	public void setEstado(Integer estado) {
+		this.estado = estado;
+	}
+	
 	@Override
 	public String toString() {
 		return "Metodos [id=" + id + ", nombre=" + nombre + "]";
 	}
-
 }
