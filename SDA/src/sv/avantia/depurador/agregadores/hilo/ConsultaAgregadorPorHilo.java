@@ -13,11 +13,12 @@ import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
@@ -25,7 +26,6 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import javax.xml.rpc.encoding.XMLType;
 import javax.xml.soap.MessageFactory;
 import javax.xml.soap.MimeHeaders;
 import javax.xml.soap.SOAPConnection;
@@ -56,7 +56,7 @@ import sv.avantia.depurador.agregadores.entidades.ParametrosSistema;
 import sv.avantia.depurador.agregadores.entidades.Respuesta;
 import sv.avantia.depurador.agregadores.entidades.UsuarioSistema;
 import sv.avantia.depurador.agregadores.jdbc.BdEjecucion;
-import sv.avantia.depurador.agregadores.ws.cliente.WebServicesClient;
+import sv.avantia.depurador.agregadores.utileria.MetodosComparator;
 
 import com.cladonia.xml.webservice.soap.SOAPClient;
 import com.cladonia.xml.webservice.wsdl.WSDLException;
@@ -160,8 +160,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 			this.interrupt();
 		}
 	}
-	
-	
+		
 	/**
 	 * Ejecucines por numero de telefonia movil
 	 * @author Edwin Mejia - Avantia Consultores
@@ -171,74 +170,42 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 * */
 	public synchronized void invocacionPorNumero(String movil) throws Exception
 	{
-		logger.info("Se iniciaran las invocaciones por el número "+movil);
+		logger.info("Se iniciaran las invocaciones por el número " + movil);
 		//obtener el mensaje de input y modificar parametros
-		int ordenEjecucion = 1;
-		int tamanio = getAgregador().getMetodos().size();
-		boolean seguir=true;
-		while(seguir)
+		
+		if(getAgregador().getMetodos().size()>0)
 		{
+			//ordernar Los metodos web por su tipo de ejecucion
+			List<Metodos> metodos = new ArrayList<Metodos>();
+			metodos.addAll(getAgregador().getMetodos());
+			Collections.sort(metodos, new MetodosComparator());
 			
-			//nos evitamos un bucle infinito
-			if( getAgregador().getMetodos().size()<1)
-			{
-				seguir = false;
-				break;
-			}
+			//************* LISTA NEGRA ***************//
+			//llenar los parametros para los metodos web.
+			llenarParametros(movil, metodos.get(0));
 			
-			for (Metodos metodo : getAgregador().getMetodos()) 
-			{
-				System.out.println("Procesando... " + metodo.getNombre());
-				//llenar los parametros para los metodos web.
-				llenarParametros(movil, metodo.getContrasenia(), metodo.getUsuario());
-				
-				// este seria primero ejecutar la baja de la lista negra
-				// luego consultar el historial de servicios 
-				// buscar en ese historial de servicios los que esten activos 
-				// y de esos activos seria ejecutar la baja para cada uno de dichos servicios
-				
-				//verificar el debug de los logger
-				logger.info(">>>> " + tamanio);
-				logger.info(">>>> " + ordenEjecucion);
-				logger.info(">>>> " + metodo.getOrdenEjecucion());
-				
-				//verificar esto en contra del tamaño de la lista  de metodo para hacer un bucle hasta ejecutarse en el orden deseado
-				if(ordenEjecucion == metodo.getOrdenEjecucion() && ordenEjecucion <= tamanio)
-				{
-					if (metodo.getParametros() != null) 
-					{
-						for (Parametros parametro : metodo.getParametros()) 
-						{
-							metodo.setInputMessageText(metodo.getInputMessageText().replace(("_*" + parametro.getNombre() + "_*").toString() , (getParametrosData().get(parametro.getNombre())==null?"":getParametrosData().get(parametro.getNombre()))  ));
-						}
-					}
-					
-					//con el resultado debo llenar mas el getParametrosData().put("algo debo poner sgun paamerizacion de respuesta", respuesta.getposiciion);
-					logger.info("Seguridad " + metodo.getSeguridad());
-					
-					logger.info(metodo.getInputMessageText());
-					if (metodo.getSeguridad() == 0) 
-					{
-						invokeOperation(metodo, null);
-					}
-					
-					if (metodo.getSeguridad() == 1) 
-					{
-						talk(metodo);
-					}
-					ordenEjecucion++;
-				}
-				else
-				{
-					if(ordenEjecucion>tamanio)
-						seguir = false;
-				}
-			}
+			// ejecutamos el primer metodo de lista negra
+			lecturaCompleta(ejecucionMetodo(metodos.get(0)), metodos.get(0));
+			
+			//********* CONSULTA DE SERVICIOS **********//
+			lecturaCompleta(ejecucionMetodo(metodos.get(1)), "item", metodos.get(2));
 		}
 	}
-
+	
+	/**
+	 * Llena los parametros que serviran de insumo para la invocacion de los
+	 * metodos web y estos se mantendran en memoria para agregar mas parametros
+	 * mas adelante, en este caso se llenan primeramente con los de la tabla de
+	 * la base de datos SDA_PARAMETROS_SISTEMA, luego se ejan unos explicitos
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @param movil {@link String}
+	 * @param metodo {@link Metodos}
+	 * @return {@link Void}
+	 * */
 	@SuppressWarnings("unchecked")
-	private void llenarParametros(String movil, String pass, String user) throws NoSuchAlgorithmException {
+	private void llenarParametros(String movil, Metodos metodo) throws NoSuchAlgorithmException {
+		
 		setParametrosData(new HashMap<String, String>());
 		List<ParametrosSistema> parametrosSistemas = (List<ParametrosSistema>) (List<?>)getEjecucion().listData("from SDA_PARAMETROS_SISTEMA");
 		for (ParametrosSistema parametrosSistema : parametrosSistemas) {
@@ -249,17 +216,24 @@ public class ConsultaAgregadorPorHilo extends Thread {
 		getParametrosData().put("fecha", new Date().toString());
 		getParametrosData().put("dateSMT", fechaFormated());
 		getParametrosData().put("nonce", java.util.UUID.randomUUID().toString());
-		getParametrosData().put("pass", pass);
-		getParametrosData().put("user", user);
-		getParametrosData().put("passSMT", contraseniaSMT(getParametrosData().get("nonce"), getParametrosData().get("dateSMT"), pass));
+		getParametrosData().put("pass", metodo.getContrasenia());
+		getParametrosData().put("user", metodo.getUsuario());
+		getParametrosData().put("passSMT", contraseniaSMT(getParametrosData().get("nonce"), getParametrosData().get("dateSMT"), metodo.getContrasenia()));
 		
-		
-		//getParametrosData().put("accion", "2");//2 es el que ejecuta la liminacion de la lista negra
-		//getParametrosData().put("operacion", "2");//2 es el que ejecuta la liminacion de la lista negra
-		//getParametrosData().put("servicio", "");
-		//getParametrosData().put("mcorta", "");
 	}
 	
+	/**
+	 * Metodo que genera la contraseña de seguridad para el agregador del SMT
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @param nonce
+	 *            numero aleatorio
+	 * @param timestamp
+	 *            {@link String} fecha ya formateada
+	 * @param pass
+	 *            {@link String} password sin encriptar
+	 * @return {@link String}
+	 * */
 	private String contraseniaSMT(String nonce, String timestamp, String pass) throws NoSuchAlgorithmException{
 		String concatenacion = nonce.concat(timestamp).concat(pass);
 		MessageDigest md = MessageDigest.getInstance("SHA-1");
@@ -267,259 +241,49 @@ public class ConsultaAgregadorPorHilo extends Thread {
 		return Base64.encode(md.digest());
 	}
 	
+	/**
+	 * Metodo que se encarga de formatear la fecha asi como fue solictado por el SMT
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @return {@link String}
+	 * */
 	private String fechaFormated(){
     	SimpleDateFormat dateT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
     	return dateT.format(Calendar.getInstance().getTime());
     }
-
-	public List<String> getMoviles() {
-		return moviles;
-	}
-
-	public void setMoviles(List<String> moviles) {
-		this.moviles = moviles;
-	}
-
-	public Agregadores getAgregador() {
-		return agregador;
-	}
-
-	public void setAgregador(Agregadores agregador) {
-		this.agregador = agregador;
-	}
-	
-
-	//*********************************************************************************************************************************/
-	//		cliente SIN SSL es un cliente normal sin seguridad RPC
-	//*********************************************************************************************************************************/
-
 	
 	/**
-	 * Llenar con los parametros requeridos para el llamdo de el web services
-	 * para la comunicacion con los servicios parametrizados
+	 * Metodo que se encarga de cambiar los parametros por data real se remplaza
+	 * el comodin _*, Se verifica si el metodo tiene seguridad o no osea si
+	 * tiene un http o un https y de esta forma sabe por donde sera ejecutado
 	 * 
-	 * @author Emejia - Avantia Consultores
-	 * @param definitionArgument
-	 *            - es en objeto vienen los dos marametros listos para consumir
-	 *            el web services SMG3 donde viene el objeto y el dato para el
-	 *            trace level del SMG3
-	 * @param operacion
-	 *            - este es el nombre de la operacion que se va a efectuar
-	 *            dentro de servicio web ya sea para consultar una estrategia o
-	 *            para actualizar dichas estrategias
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @param metodo
+	 *            {@link Metodos}
+	 * @return {@link Document}
 	 * @throws Exception
 	 * */
-	@Deprecated
-	public String consultarServicio(Map<String, Object> definitionArgument, String operacion) throws Exception{
-		WebServicesClient stub = new WebServicesClient();
-		stub.setAddress("http://localhost:8090/axis2/services/servicio_1.servicio_1HttpSoap11Endpoint/");
-		stub.setNamespaceURI("http://web.servicio.avantia.sv");
-		stub.setReturnType(XMLType.XSD_STRING);//XMLType.XSD_STRING or Qname
-		stub.setServiceName("servicio_1");
-		stub.setPortName("servicio_1HttpSoap11Endpoint");			
-		stub.setDefinitionArgument(definitionArgument);
-		stub.setOpertationNameInvoke(operacion); //"DACallPREBURO"
-		stub.setTimeOutSeconds(6000);
-		
-		return (String) stub.respuestaWebService();
-	}
-	
-	//*********************************************************************************************************************************/
-	//		cliente SIN SSL es un cliente normal sin seguridad
-	//*********************************************************************************************************************************/
-
-	/**
-	 * Invoke a SOAP call passing in an operation instance and attachments
-	 *
-	 * @param operation {@link Metodos} The selected operation
-	 * @param attachements The required attachments
-	 *
-	 * @return The response SOAP Envelope as a String
-	 * @throws WSDLException algun problema en la interpretacion e invocacion de los servicios
-	 */
-	public void invokeOperation(Metodos operation,File[] attachments)
-	throws WSDLException
-	{
-		try{
-			Document docRequest = XMLSupport.parse(operation.getInputMessageText());
-	
-			// create the saaj based soap client
-			SOAPClient client = new SOAPClient(docRequest);
-	
-			// add any attachments if required
-			if (attachments != null)
+	private Document ejecucionMetodo(Metodos metodo) throws Exception{
+		if (metodo.getParametros() != null) 
+		{
+			for (Parametros parametro : metodo.getParametros()) 
 			{
-				client.addAttachments(attachments);
+				metodo.setInputMessageText(metodo.getInputMessageText().replace(("_*" + parametro.getNombre() + "_*").toString() , (getParametrosData().get(parametro.getNombre())==null?"":getParametrosData().get(parametro.getNombre()))  ));
 			}
-	
-			// set the SOAPAction
-			client.setSOAPAction(operation.getSoapActionURI());
-	
-			// get the url
-			URL url = new URL(operation.getEndPoint());
-	
-			// send the soap message
-			Document responseDoc = client.send(url);
-			
-			lecturaCompleta(responseDoc, operation);
 		}
-		catch (Exception e)
+		
+		if (metodo.getSeguridad() == 0) 
 		{
-			logger.error("Problemas al invocar el metodo Sin seguridad", e);
-			throw new WSDLException(e);
+			return invokeOperation(metodo, null);
 		}
-	}
-	
-	//*********************************************************************************************************************************/
-	//		cliente SSL
-	//*********************************************************************************************************************************/
-
-	/**
-	 * Metodo que nos carga un certificado digital
-	 * 
-	 * @author Edwin Mejia - Avantia Consultores
-	 * @return {@link Void}
-	 * */
-	static public void doTrustToCertificates() throws Exception {
-		// Security.addProvider(new com.sun.net.ssl.internal.ssl.Provider());
-		TrustManager[] trustAllCerts = new TrustManager[] { 
-				new X509TrustManager() {
-					public X509Certificate[] getAcceptedIssuers() {
-						return null;
-					}
 		
-					public void checkServerTrusted(X509Certificate[] certs,
-							String authType) throws CertificateException {
-						return;
-					}
-		
-					public void checkClientTrusted(X509Certificate[] certs,
-							String authType) throws CertificateException {
-						return;
-					}
-				} 
-		};
-
-		logger.info("Generando la salida con seguridad");
-		
-		SSLContext sc = SSLContext.getInstance("SSL");
-		sc.init(null, trustAllCerts, new SecureRandom());
-		HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
-		HostnameVerifier hv = new HostnameVerifier() {
-			public boolean verify(String urlHostName, SSLSession session) {
-				if (!urlHostName.equalsIgnoreCase(session.getPeerHost())) {
-					logger.warn("Warning: URL host '" + urlHostName	+ "' is different to SSLSession host '"	+ session.getPeerHost() + "'.");
-				}
-				return true;
-			}
-		};
-		HttpsURLConnection.setDefaultHostnameVerifier(hv);
-	}
-	
-	/**
-	 * Metodo que realiza el envio del archivo request y espera el archivo
-	 * response para el metodo web
-	 * 
-	 * @author Edwin Mejia - Avantia Consultores
-	 * @param  metodo {@link Metodos}
-	 * @return {@link Void}
-	 * @throws Exception 
-	 * */
-	private void talk(Metodos metodo) throws Exception {
-		Document doc = null;
-		try {
-			MessageFactory messageFactory = MessageFactory.newInstance();
-			SOAPMessage msg = messageFactory.createMessage(
-					new MimeHeaders(),
-					new ByteArrayInputStream(metodo.getInputMessageText().getBytes(Charset.forName("UTF-8"))));
-
-			// View input
-			//msg.writeTo(System.out);
-
-			// Trust to certificates
-			doTrustToCertificates();
-
-			logger.info("Enviando el mensaje");
-			// SOAPMessage rp = conn.call(msg, urlval);
-			SOAPMessage rp = sendMessage(msg, metodo.getEndPoint());
-
-			// View the output
-			//rp.writeTo(System.out);
-			logger.info("Respuesta recibida");
-			logger.info(rp.toString());
-			doc = toDocument(rp);
-			
-			
-			
-			lecturaCompleta(doc, metodo);
-		} 
-		catch (Exception e) 
+		if (metodo.getSeguridad() == 1) 
 		{
-			logger.error("Error al nvocar con seguridad " + e.getMessage());
-			LogDepuracion objGuardar = new LogDepuracion();
-			objGuardar.setNumero(getParametrosData().get("movil"));
-			objGuardar.setRespuesta( doc==null ? e.getMessage() : doc.getTextContent() );
-			objGuardar.setEstadoTransaccion("Error al procesar");
-			objGuardar.setFechaTransaccion(new Date());
-			objGuardar.setMetodo(metodo);
-			objGuardar.setEnvio(metodo.getInputMessageText());
-			objGuardar.setTipoTransaccion(getTipoDepuracion());
-			objGuardar.setUsuarioSistema(getUsuarioSistema());
-			
-			getEjecucion().createData(objGuardar);
-			throw e;
+			return talk(metodo);
 		}
+		return null;
 	}
-	
-	/**
-	 * Metodo para la transformación de un {@link SOAPMessage} Response a un
-	 * {@link Document} y hacer mas facil la busqueda del dato
-	 * 
-	 * @author Edwin Mejia - Avantia Consultores
-	 * @param soapMsg
-	 *            {@link SOAPMessage}
-	 * @return {@link Document}
-	 * */
-	private static Document toDocument(SOAPMessage soapMsg)
-			throws TransformerConfigurationException, TransformerException,
-			SOAPException, IOException {
-		Source src = soapMsg.getSOAPPart().getContent();
-		TransformerFactory tf = TransformerFactory.newInstance();
-		Transformer transformer = tf.newTransformer();
-		DOMResult result = new DOMResult();
-		transformer.transform(src, result);
-		return (Document) result.getNode();
-	}
-	
-	/**
-	 * Metodo para la transformación de un {@link Document} Response a un
-	 * {@link String} y hacer mas facil la busqueda del dato
-	 * 
-	 * @author Edwin Mejia - Avantia Consultores
-	 * @param soapMsg
-	 *            {@link SOAPMessage}
-	 * @return {@link Document}
-	 * */
-	public String getStringFromDocument(Document doc)
-	{
-	    try
-	    {
-	       DOMSource domSource = new DOMSource(doc);
-	       StringWriter writer = new StringWriter();
-	       StreamResult result = new StreamResult(writer);
-	       TransformerFactory tf = TransformerFactory.newInstance();
-	       Transformer transformer = tf.newTransformer();
-	       transformer.transform(domSource, result);
-	       return writer.toString();
-	    }
-	    catch(TransformerException ex)
-	    {
-	       ex.printStackTrace();
-	       return null;
-	    }
-	} 
 
-	
 	/**
 	 * Metodo que recibe el documento Soap Response y este hace la lectura de la
 	 * lista de nodos que obtiene para procesarlos y buscar la {@link Respuesta}
@@ -530,6 +294,76 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 *            {@link Document}
 	 * @param nodeNameToReader
 	 *            {@link String}
+	 * @param metodo
+	 *            {@link Metodos}
+	 * @return {@link Void}
+	 * @throws Exception 
+	 * */
+	private void lecturaCompleta(Document doc, String dato, Metodos metodo) throws Exception {
+		doc.getDocumentElement().normalize();
+		if (doc.getDocumentElement().hasChildNodes()) {
+			NodeList nodeList = doc.getDocumentElement().getChildNodes();
+			lecturaListadoNodos2(nodeList, dato, metodo);
+		}
+	}
+	
+
+	/**
+	 * Metodo recursivo, para la lectura de nodos del Soap Response que se ha
+	 * recibido de la consulta de los {@link Agregadores} a su vez este metodo
+	 * se encarga de guardar en la base de datos as {@link Respuesta} obtenidas
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @param nodeList
+	 *            {@link NodeList}
+	 * @param nodeNameToReader
+	 *            {@link String} nombre del nodo que andamos buscando dentro del listado
+	 * @return {@link Void}
+	 * @throws Exception 
+	 * */
+	private void lecturaListadoNodos2(NodeList nodeList, String nodeNameToReader, Metodos metodoBaja) throws Exception {
+		for (int i = 0; i < nodeList.getLength(); i++) {
+			Node node = nodeList.item(i);
+			if (node.getNodeType() == Node.ELEMENT_NODE) {
+				if(node.getNodeName().equals(nodeNameToReader))
+				{
+					if(node.getFirstChild().getNodeValue().trim().isEmpty()){
+						if(indiceServicios>0){
+							//********* BAJA DE SERVICIOS **********//
+							if(getParametrosData().get("servicioActivado").equals("1"))//el servicio esta activado y hay que darle de baja
+								ejecucionMetodo(metodoBaja);
+						}
+						indiceServicios ++;
+						indice = 1;
+					}else{
+						if(indice==1)
+							getParametrosData().put("servicio", node.getFirstChild().getNodeValue().trim());
+						if(indice==1)
+							getParametrosData().put("servicioActivado", node.getFirstChild().getNodeValue().trim());
+						if(indice==5)
+							getParametrosData().put("marcacion", node.getFirstChild().getNodeValue().trim());
+						
+						indice++;
+					}
+				}
+				
+				if (node.hasChildNodes())
+					lecturaListadoNodos2(node.getChildNodes(), nodeNameToReader, metodoBaja);
+			}
+		}
+	}
+	
+	private int indiceServicios = 0;
+	private int indice = 1;
+	
+	/**
+	 * Metodo que recibe el documento Soap Response y este hace la lectura de la
+	 * lista de nodos que obtiene para procesarlos y buscar la {@link Respuesta}
+	 * deseada
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @param doc
+	 *            {@link Document}
 	 * @param metodo
 	 *            {@link Metodos}
 	 * @return {@link Void}
@@ -613,6 +447,229 @@ public class ConsultaAgregadorPorHilo extends Thread {
 			}
 		}
 	}
+	
+
+	public List<String> getMoviles() {
+		return moviles;
+	}
+
+	public void setMoviles(List<String> moviles) {
+		this.moviles = moviles;
+	}
+
+	public Agregadores getAgregador() {
+		return agregador;
+	}
+
+	public void setAgregador(Agregadores agregador) {
+		this.agregador = agregador;
+	}
+	
+	
+	
+	
+	
+	//*********************************************************************************************************************************/
+	//		cliente SIN SSL es un cliente normal sin seguridad
+	//*********************************************************************************************************************************/
+
+	/**
+	 * Invoke a SOAP call passing in an operation instance and attachments
+	 * 
+	 * @param operation
+	 *            {@link Metodos} The selected operation
+	 * @param attachements
+	 *            The required attachments
+	 * 
+	 * @return The response SOAP Envelope as a String
+	 * @throws WSDLException
+	 *             algun problema en la interpretacion e invocacion de los
+	 *             servicios
+	 */
+	public Document invokeOperation(Metodos operation,File[] attachments)
+	throws WSDLException
+	{
+		try{
+			Document docRequest = XMLSupport.parse(operation.getInputMessageText());
+	
+			// create the saaj based soap client
+			SOAPClient client = new SOAPClient(docRequest);
+	
+			// add any attachments if required
+			if (attachments != null)
+			{
+				client.addAttachments(attachments);
+			}
+	
+			// set the SOAPAction
+			client.setSOAPAction(operation.getSoapActionURI());
+	
+			// get the url
+			URL url = new URL(operation.getEndPoint());
+	
+			// send the soap message
+			return client.send(url);
+			
+			
+		}
+		catch (Exception e)
+		{
+			logger.error("Problemas al invocar el metodo Sin seguridad", e);
+			throw new WSDLException(e);
+		}
+	}
+	
+	//*********************************************************************************************************************************/
+	//		cliente SSL
+	//*********************************************************************************************************************************/
+
+	/**
+	 * Metodo que nos carga un certificado digital
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @return {@link Void}
+	 * */
+	static public void doTrustToCertificates() throws Exception {
+		// Security.addProvider(new com.sun.net.ssl.internal.ssl.Provider());
+		TrustManager[] trustAllCerts = new TrustManager[] { 
+				new X509TrustManager() {
+					public X509Certificate[] getAcceptedIssuers() {
+						return null;
+					}
+		
+					public void checkServerTrusted(X509Certificate[] certs,
+							String authType) throws CertificateException {
+						return;
+					}
+		
+					public void checkClientTrusted(X509Certificate[] certs,
+							String authType) throws CertificateException {
+						return;
+					}
+				} 
+		};
+
+		logger.info("Generando la salida con seguridad");
+		
+		SSLContext sc = SSLContext.getInstance("SSL");
+		sc.init(null, trustAllCerts, new SecureRandom());
+		HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+		HostnameVerifier hv = new HostnameVerifier() {
+			public boolean verify(String urlHostName, SSLSession session) {
+				if (!urlHostName.equalsIgnoreCase(session.getPeerHost())) {
+					logger.warn("Warning: URL host '" + urlHostName	+ "' is different to SSLSession host '"	+ session.getPeerHost() + "'.");
+				}
+				return true;
+			}
+		};
+		HttpsURLConnection.setDefaultHostnameVerifier(hv);
+	}
+	
+	/**
+	 * Metodo que realiza el envio del archivo request y espera el archivo
+	 * response para el metodo web
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @param  metodo {@link Metodos}
+	 * @return {@link Void}
+	 * @throws Exception 
+	 * */
+	private Document talk(Metodos metodo) throws Exception {
+		Document doc = null;
+		try {
+			MessageFactory messageFactory = MessageFactory.newInstance();
+			SOAPMessage msg = messageFactory.createMessage(
+					new MimeHeaders(),
+					new ByteArrayInputStream(metodo.getInputMessageText().getBytes(Charset.forName("UTF-8"))));
+
+			// View input
+			//msg.writeTo(System.out);
+
+			// Trust to certificates
+			doTrustToCertificates();
+
+			logger.info("Enviando el mensaje");
+			// SOAPMessage rp = conn.call(msg, urlval);
+			SOAPMessage rp = sendMessage(msg, metodo.getEndPoint());
+
+			// View the output
+			//rp.writeTo(System.out);
+			logger.info("Respuesta recibida");
+			logger.info(rp.toString());
+			return toDocument(rp);
+			
+			
+			
+			//lecturaCompleta(doc, metodo);
+		} 
+		catch (Exception e) 
+		{
+			logger.error("Error al nvocar con seguridad " + e.getMessage());
+			LogDepuracion objGuardar = new LogDepuracion();
+			objGuardar.setNumero(getParametrosData().get("movil"));
+			objGuardar.setRespuesta( doc==null ? e.getMessage() : doc.getTextContent() );
+			objGuardar.setEstadoTransaccion("Error al procesar");
+			objGuardar.setFechaTransaccion(new Date());
+			objGuardar.setMetodo(metodo);
+			objGuardar.setEnvio(metodo.getInputMessageText());
+			objGuardar.setTipoTransaccion(getTipoDepuracion());
+			objGuardar.setUsuarioSistema(getUsuarioSistema());
+			
+			getEjecucion().createData(objGuardar);
+			throw e;
+		}
+	}
+	
+	/**
+	 * Metodo para la transformación de un {@link SOAPMessage} Response a un
+	 * {@link Document} y hacer mas facil la busqueda del dato
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @param soapMsg
+	 *            {@link SOAPMessage}
+	 * @return {@link Document}
+	 * */
+	private static Document toDocument(SOAPMessage soapMsg)
+			throws TransformerConfigurationException, TransformerException,
+			SOAPException, IOException {
+		Source src = soapMsg.getSOAPPart().getContent();
+		TransformerFactory tf = TransformerFactory.newInstance();
+		Transformer transformer = tf.newTransformer();
+		DOMResult result = new DOMResult();
+		transformer.transform(src, result);
+		return (Document) result.getNode();
+	}
+	
+	/**
+	 * Metodo para la transformación de un {@link Document} Response a un
+	 * {@link String} y hacer mas facil la busqueda del dato
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @param soapMsg
+	 *            {@link SOAPMessage}
+	 * @return {@link Document}
+	 * */
+	public String getStringFromDocument(Document doc)
+	{
+	    try
+	    {
+	       DOMSource domSource = new DOMSource(doc);
+	       StringWriter writer = new StringWriter();
+	       StreamResult result = new StreamResult(writer);
+	       TransformerFactory tf = TransformerFactory.newInstance();
+	       Transformer transformer = tf.newTransformer();
+	       transformer.transform(domSource, result);
+	       return writer.toString();
+	    }
+	    catch(TransformerException ex)
+	    {
+	       ex.printStackTrace();
+	       return null;
+	    }
+	} 
+
+	
+	
 
 	/**
 	 * Metodo que envia realiza la conexion al servicio web e invoca al metodo a
@@ -717,3 +774,102 @@ public class ConsultaAgregadorPorHilo extends Thread {
 		this.tipoDepuracion = tipoDepuracion;
 	}
 }
+
+
+//*********************************************************************************************************************************/
+	//		cliente SIN SSL es un cliente normal sin seguridad RPC
+	//*********************************************************************************************************************************/
+
+	
+	/**
+	 * Llenar con los parametros requeridos para el llamdo de el web services
+	 * para la comunicacion con los servicios parametrizados
+	 * 
+	 * @author Emejia - Avantia Consultores
+	 * @param definitionArgument
+	 *            - es en objeto vienen los dos marametros listos para consumir
+	 *            el web services SMG3 donde viene el objeto y el dato para el
+	 *            trace level del SMG3
+	 * @param operacion
+	 *            - este es el nombre de la operacion que se va a efectuar
+	 *            dentro de servicio web ya sea para consultar una estrategia o
+	 *            para actualizar dichas estrategias
+	 * @throws Exception
+	 * *//*
+	@Deprecated
+	public String consultarServicio(Map<String, Object> definitionArgument, String operacion) throws Exception{
+		WebServicesClient stub = new WebServicesClient();
+		stub.setAddress("http://localhost:8090/axis2/services/servicio_1.servicio_1HttpSoap11Endpoint/");
+		stub.setNamespaceURI("http://web.servicio.avantia.sv");
+		stub.setReturnType(XMLType.XSD_STRING);//XMLType.XSD_STRING or Qname
+		stub.setServiceName("servicio_1");
+		stub.setPortName("servicio_1HttpSoap11Endpoint");			
+		stub.setDefinitionArgument(definitionArgument);
+		stub.setOpertationNameInvoke(operacion); //"DACallPREBURO"
+		stub.setTimeOutSeconds(6000);
+		
+		return (String) stub.respuestaWebService();
+	}*/
+
+/*
+int ordenEjecucion = 1;
+int tamanio = getAgregador().getMetodos().size();
+boolean seguir=true;
+while(seguir)
+{
+	
+	//nos evitamos un bucle infinito
+	if( getAgregador().getMetodos().size()<1)
+	{
+		seguir = false;
+		break;
+	}
+	
+	for (Metodos metodo : getAgregador().getMetodos()) 
+	{
+		System.out.println("Procesando... " + metodo.getMetodo());
+		//llenar los parametros para los metodos web.
+		llenarParametros(movil, metodo);
+		
+		// este seria primero ejecutar la baja de la lista negra
+		// luego consultar el historial de servicios 
+		// buscar en ese historial de servicios los que esten activos 
+		// y de esos activos seria ejecutar la baja para cada uno de dichos servicios
+		
+		//verificar el debug de los logger
+		logger.info(">>>> " + tamanio);
+		logger.info(">>>> " + ordenEjecucion);
+		
+		//verificar esto en contra del tamaño de la lista  de metodo para hacer un bucle hasta ejecutarse en el orden deseado
+		if(ordenEjecucion == metodo.getMetodo() && ordenEjecucion <= tamanio)
+		{
+			if (metodo.getParametros() != null) 
+			{
+				for (Parametros parametro : metodo.getParametros()) 
+				{
+					metodo.setInputMessageText(metodo.getInputMessageText().replace(("_*" + parametro.getNombre() + "_*").toString() , (getParametrosData().get(parametro.getNombre())==null?"":getParametrosData().get(parametro.getNombre()))  ));
+				}
+			}
+			
+			//con el resultado debo llenar mas el getParametrosData().put("algo debo poner sgun paamerizacion de respuesta", respuesta.getposiciion);
+			logger.info("Seguridad " + metodo.getSeguridad());
+			
+			logger.info(metodo.getInputMessageText());
+			if (metodo.getSeguridad() == 0) 
+			{
+				invokeOperation(metodo, null);
+			}
+			
+			if (metodo.getSeguridad() == 1) 
+			{
+				talk(metodo);
+			}
+			ordenEjecucion++;
+		}
+		else
+		{
+			if(ordenEjecucion>tamanio)
+				seguir = false;
+		}
+	}
+}*/

@@ -476,7 +476,7 @@ public class ParametrizarServicio {
 						Metodos operationInfo = new Metodos();
 						operationInfo.setStyle(style);
 						operationInfo.setId(id);
-						operationInfo.setNombre(qName.getLocalPart());
+						//operationInfo.setNombre(qName.getLocalPart());
 
 						// style maybe overridden in operation
 						String operStyle = ((SOAPOperation) operElem).getStyle();

@@ -96,7 +96,7 @@ public class Cliente {
 				System.out.println("getTargetMethodName: "	+ operation.getTargetMethodName());
 				System.out.println("getTargetObjectURI(): "	+ operation.getTargetObjectURI());
 				System.out.println("getTargetURL(): "		+ operation.getTargetURL());
-				System.out.println("getNombre: "		+ operation.getNombre());
+				//System.out.println("getNombre: "		+ operation.getNombre());
 				System.out.println();
 				
 				

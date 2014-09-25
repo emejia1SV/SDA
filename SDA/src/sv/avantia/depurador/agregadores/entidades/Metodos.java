@@ -33,8 +33,8 @@ public class Metodos implements Serializable{
 	@Column(name = "ID", nullable = false)
 	private Integer id;
 
-	@Column(name = "NOMBRE", nullable = false)
-	private String nombre;
+	@Column(name = "METODO", nullable = false)
+	private Integer metodo;
 
 	@Column(name = "USUARIO")
 	private String usuario;
@@ -48,18 +48,12 @@ public class Metodos implements Serializable{
 	@Column(name = "SEGURIDAD")
 	private Integer seguridad;
 	
-	@Column(name = "ORDEN_EJECUCION")
-	private Integer ordenEjecucion;
-
 	@Column(name = "INPUTMESSAGETEXT", nullable = false)
 	private String inputMessageText;
 	
 	@Column(name = "INPUTMESSAGENAME")
 	private String inputMessageName;
-	
-	@Column(name = "ESTADO")
-	private Integer estado;
-	
+		
 	@Column(name = "SERVICE_NAME")
 	private String serviceName;
 
@@ -111,14 +105,6 @@ public class Metodos implements Serializable{
 
 	public void setAgregador(Agregadores agregador) {
 		this.agregador = agregador;
-	}
-
-	public String getNombre() {
-		return nombre;
-	}
-
-	public void setNombre(String nombre) {
-		this.nombre = nombre;
 	}
 
 	public String getInputMessageName() {
@@ -259,30 +245,23 @@ public class Metodos implements Serializable{
 		this.seguridad = seguridad;
 	}
 	
-	public Integer getOrdenEjecucion() {
-		return ordenEjecucion;
-	}
 
-	public void setOrdenEjecucion(Integer ordenEjecucion) {
-		this.ordenEjecucion = ordenEjecucion;
+	/**
+	 * @return the metodo
+	 */
+	public Integer getMetodo() {
+		return metodo;
 	}
 
 	/**
-	 * @return the estado
+	 * @param metodo the metodo to set
 	 */
-	public Integer getEstado() {
-		return estado;
-	}
-
-	/**
-	 * @param estado the estado to set
-	 */
-	public void setEstado(Integer estado) {
-		this.estado = estado;
+	public void setMetodo(Integer metodo) {
+		this.metodo = metodo;
 	}
 	
 	@Override
 	public String toString() {
-		return "Metodos [id=" + id + ", nombre=" + nombre + "]";
+		return "Metodos [id=" + id + ", metodo=" + metodo + "]";
 	}
 }
