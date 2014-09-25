@@ -18,10 +18,7 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 
-import org.hibernate.annotations.FilterDef;
-
 @Entity(name = "SDA_METODOS")
-@FilterDef(name="SDA_METODOS_FILTER", defaultCondition="ESTADO = 1")
 @Table(name = "SDA_METODOS", uniqueConstraints = { @UniqueConstraint(columnNames = { "ID" }) })
 public class Metodos implements Serializable{
 

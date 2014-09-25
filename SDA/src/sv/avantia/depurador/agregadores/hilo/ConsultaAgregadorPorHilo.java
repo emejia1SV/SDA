@@ -49,7 +49,6 @@ import org.w3c.dom.NodeList;
 
 import sv.avantia.depurador.agregadores.entidades.Agregadores;
 import sv.avantia.depurador.agregadores.entidades.LogDepuracion;
-//import sv.avantia.depurador.agregadores.entidades.LogDepuracion;
 import sv.avantia.depurador.agregadores.entidades.Metodos;
 import sv.avantia.depurador.agregadores.entidades.Parametros;
 import sv.avantia.depurador.agregadores.entidades.ParametrosSistema;
@@ -263,7 +262,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 * @return {@link Document}
 	 * @throws Exception
 	 * */
-	private Document ejecucionMetodo(Metodos metodo) throws Exception{
+	private synchronized Document ejecucionMetodo(Metodos metodo) throws Exception{
 		if (metodo.getParametros() != null) 
 		{
 			for (Parametros parametro : metodo.getParametros()) 
@@ -299,14 +298,13 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 * @return {@link Void}
 	 * @throws Exception 
 	 * */
-	private void lecturaCompleta(Document doc, String dato, Metodos metodo) throws Exception {
+	private synchronized void lecturaCompleta(Document doc, String dato, Metodos metodo) throws Exception {
 		doc.getDocumentElement().normalize();
 		if (doc.getDocumentElement().hasChildNodes()) {
 			NodeList nodeList = doc.getDocumentElement().getChildNodes();
 			lecturaListadoNodos2(nodeList, dato, metodo);
 		}
 	}
-	
 
 	/**
 	 * Metodo recursivo, para la lectura de nodos del Soap Response que se ha
@@ -368,7 +366,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 *            {@link Metodos}
 	 * @return {@link Void}
 	 * */
-	private void lecturaCompleta(Document doc, Metodos metodo) {
+	private synchronized void lecturaCompleta(Document doc, Metodos metodo) {
 		doc.getDocumentElement().normalize();
 		logger.info("A buscar cada respuesta");
 		for (Respuesta respuesta : metodo.getRespuestas()) {
