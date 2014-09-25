@@ -197,6 +197,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 				// buscar en ese historial de servicios los que esten activos 
 				// y de esos activos seria ejecutar la baja para cada uno de dichos servicios
 				
+				//verificar el debug de los logger
 				logger.info(">>>> " + tamanio);
 				logger.info(">>>> " + ordenEjecucion);
 				logger.info(">>>> " + metodo.getOrdenEjecucion());
