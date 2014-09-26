@@ -55,33 +55,51 @@ public class Iniciar {
 			// consultar la parametrización
 			for (Pais pais : obtenerParmetrizacion()) 
 			{
-				// consultar los numeros
-				moviles = obtenerNumeros(pais.getCodigo());
+				if(pais.getEstado()==1){
+					// consultar los numeros
+					moviles = obtenerNumeros(pais.getCodigo());
 
-				if (moviles.size() > 0) 
-				{
-					System.out.println("Procesando... " + pais.getNombre());
-					for (Agregadores agregador : pais.getAgregadores()) 
+					if (moviles.size() > 0) 
 					{
-						// abrir un hilo pr cada agregador parametrizados
-						ConsultaAgregadorPorHilo hilo = new ConsultaAgregadorPorHilo();
-						hilo.setMoviles(moviles);
-						hilo.setAgregador(agregador);
-						hilo.setTipoDepuracion("MASIVA");
-						hilo.setUsuarioSistema(getEjecucion().usuarioMaestro());
-						hilo.start();
+						for (Agregadores agregador : pais.getAgregadores()) 
+						{
+							if(agregador.getEstado()==1)
+							{
+								if(!agregador.getMetodos().isEmpty())
+								{
+									// abrir un hilo pr cada agregador parametrizados
+									ConsultaAgregadorPorHilo hilo = new ConsultaAgregadorPorHilo();
+									hilo.setMoviles(moviles);
+									hilo.setAgregador(agregador);
+									hilo.setTipoDepuracion("MASIVA");
+									hilo.setUsuarioSistema(getEjecucion().usuarioMaestro());
+									hilo.start();
+								}
+							}
+						}
 					}
 				}
+				
 			}			
 		} 
 		catch (Exception e) 
 		{
+			if(SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().isOpen())
+	        	SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().close();
+	        	
+	        if(!SessionFactoryUtil.getSessionAnnotationFactory().isClosed())
+	        	SessionFactoryUtil.getSessionAnnotationFactory().close();
+	        
 			logger.error("Error en el sistema de depuracion masiva automatico ", e);
 		}
 		finally
 		{
-			//terminar el flujo.
-			SessionFactoryUtil.closeSession();
+			if(SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().isOpen())
+	        	SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().close();
+	        	
+	        if(!SessionFactoryUtil.getSessionAnnotationFactory().isClosed())
+	        	SessionFactoryUtil.getSessionAnnotationFactory().close();
+	        
 			moviles = null;
 			setEjecucion(null);
 			logger.info("finalizo la depuración de los numeros en " + ((System.currentTimeMillis() - init)/1000)  + "Segundos");

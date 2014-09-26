@@ -5,6 +5,7 @@ import java.util.List;
 import org.apache.log4j.Logger;
 import org.hibernate.Criteria;
 import org.hibernate.HibernateException;
+import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.criterion.Projections;
 
@@ -14,6 +15,7 @@ import sv.avantia.depurador.agregadores.entidades.LogDepuracion;
 import sv.avantia.depurador.agregadores.entidades.Metodos;
 import sv.avantia.depurador.agregadores.entidades.Pais;
 import sv.avantia.depurador.agregadores.entidades.Parametros;
+import sv.avantia.depurador.agregadores.entidades.ParametrosSistema;
 import sv.avantia.depurador.agregadores.entidades.Respuesta;
 import sv.avantia.depurador.agregadores.jdbc.BdEjecucion;
 import sv.avantia.depurador.agregadores.jdbc.SessionFactoryUtil;
@@ -29,8 +31,8 @@ public class TestHibernate {
 	public static void main(String[] args) {
 		try {
 			
-			llenarTablaLogs();
-			
+		ParametrosSistema sistema = (ParametrosSistema)	obtenerDato("FROM SDA_PARAMETROS_SISTEMA WHERE KEY = 'host'");
+			System.out.println(sistema.getValor());
 			if(SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().isOpen())
 	        	SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().close();
 	        	
@@ -48,6 +50,39 @@ public class TestHibernate {
 		}
 		
 		
+	}
+	
+	public static Object obtenerDato(String queryCompleto) 
+	{
+		Object out = null;
+		Session session = SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession();
+		try 
+		{
+			session.beginTransaction();
+			Query query = session.createQuery(queryCompleto);
+			out = query.uniqueResult();
+            session.getTransaction().commit();
+		} 
+		catch (RuntimeException e) 
+		{
+			logger.error("Error al querer consultar un valor de la base de datos", e);
+			
+			if (session.getTransaction() != null && session.getTransaction().isActive()) 
+			{
+				try 
+				{
+					// Second try catch as the rollback could fail as well
+					session.getTransaction().rollback();
+				} 
+				catch (HibernateException e1) 
+				{
+					logger.error("Error al querer realizar rolback a la base de datos", e1);
+				}
+				// throw again the first exception
+				throw e;
+			}
+		}
+		return out;
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -188,7 +223,7 @@ public class TestHibernate {
 		
 		createData(respuesta3);
 
-        SessionFactoryUtil.closeSession();
+       // SessionFactoryUtil.closeSession();
         
         if(SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().isOpen())
         	SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().close();
@@ -221,7 +256,7 @@ public class TestHibernate {
 			createData(depuracion);
 			
 		}
-		SessionFactoryUtil.closeSession();
+		//SessionFactoryUtil.closeSession();
 	}
 
 	@SuppressWarnings("unused")
@@ -232,7 +267,7 @@ public class TestHibernate {
 			depuracion.setNumero(String.valueOf(i));
 			createData(depuracion);
 		}
-		SessionFactoryUtil.closeSession();
+		//SessionFactoryUtil.closeSession();
 	}
 
 	@SuppressWarnings("unused")
@@ -243,7 +278,7 @@ public class TestHibernate {
 			depuracion.setNumero(String.valueOf(i));
 			createData(depuracion);
 		}
-		SessionFactoryUtil.closeSession();
+		//SessionFactoryUtil.closeSession();
 	}
 	
 	public static void datos(){
@@ -262,7 +297,7 @@ public class TestHibernate {
 	public static void obtenerParmetrizacion(){
 		@SuppressWarnings({ "unchecked", "unused" })
 		List<Pais> datos = listData("FROM SDA_PAISES");
-		SessionFactoryUtil.closeSession();
+		//SessionFactoryUtil.closeSession();
 
 	}
 	
@@ -274,7 +309,7 @@ public class TestHibernate {
 			System.out.println(numeros.get(i).getNumero());
 		}
 		
-		SessionFactoryUtil.closeSession();
+		//SessionFactoryUtil.closeSession();
 
 	}
 	
@@ -286,7 +321,7 @@ public class TestHibernate {
 			System.out.println(pais.get(i).getNombre());
 		}
 		
-		SessionFactoryUtil.closeSession();
+		//SessionFactoryUtil.closeSession();
 	}
 	
 	public static void testDeleteCascade(){

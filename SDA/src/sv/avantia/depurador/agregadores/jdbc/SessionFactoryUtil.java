@@ -73,7 +73,7 @@ public class SessionFactoryUtil {
 	 * @author Edwin Mejia - Avantia Consultores
 	 * @return SessionFactory
 	 * */
-	public static void closeSession(){
+	/*public static void closeSession(){
 		if(sessionAnnotationFactory == null)
 			return;
 		
@@ -84,5 +84,5 @@ public class SessionFactoryUtil {
 			sessionAnnotationFactory.close();
 		
 		sessionAnnotationFactory = null;
-	}
+	}*/
 }

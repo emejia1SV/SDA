@@ -13,9 +13,7 @@ import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -55,7 +53,6 @@ import sv.avantia.depurador.agregadores.entidades.ParametrosSistema;
 import sv.avantia.depurador.agregadores.entidades.Respuesta;
 import sv.avantia.depurador.agregadores.entidades.UsuarioSistema;
 import sv.avantia.depurador.agregadores.jdbc.BdEjecucion;
-import sv.avantia.depurador.agregadores.utileria.MetodosComparator;
 
 import com.cladonia.xml.webservice.soap.SOAPClient;
 import com.cladonia.xml.webservice.wsdl.WSDLException;
@@ -63,6 +60,27 @@ import com.cladonia.xml.webservice.wsdl.XMLSupport;
 
 public class ConsultaAgregadorPorHilo extends Thread {
 
+	/**
+	 * Instancia del {@link Metodos} para la lista Negra
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * */
+	private Metodos listaNegra = null;
+	
+	/**
+	 * Instancia del {@link Metodos} para la Consulta de Servicios 
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * */
+	private Metodos consulta = null;
+	
+	/**
+	 * Instancia del {@link Metodos} para Dar de Baja Los Servicios
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * */
+	private Metodos baja = null;
+	
 	/**
 	 * Instancia del insumo {@link List} de {@link String} donde se espera
 	 * recibir un listado de numeros para depurar
@@ -120,14 +138,14 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	public static Logger logger = Logger.getLogger("avantiaLogger");
 	
 	public void run() {
-		// consultar un agregador WS
 		try {
+			logger.info("=======================	SE CONSULTARA UN AGREGADOR	==============================" );
 			procesarServiciosWeb();
-			logger.info("Se ha terminado la ejecución del Thread por el agregador " + getAgregador().getNombre_agregador());
 		} catch (Exception e) {
-			logger.error("Error dentro del Hilo de ejecucion para la depuracion " + e.getMessage(), e);
+			logger.error("ERROR DE EJECUCION DENTRO DE LA DEPURACION DEL AGREGADOR " + getAgregador().getNombre_agregador() + e.getMessage(), e);
 			this.interrupt();
 		} finally{
+			logger.info("======== SE TERMINO DE EJECUTAR EL HILO PARA EL AGREGADOR " + getAgregador().getNombre_agregador() + " ========");
 			this.interrupt();
 		}
 	}
@@ -169,25 +187,31 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 * */
 	public synchronized void invocacionPorNumero(String movil) throws Exception
 	{
-		logger.info("Se iniciaran las invocaciones por el número " + movil);
-		//obtener el mensaje de input y modificar parametros
+		logger.info("SE DEPURARA EL NUMERO " + movil);
 		
 		if(getAgregador().getMetodos().size()>0)
 		{
 			//ordernar Los metodos web por su tipo de ejecucion
-			List<Metodos> metodos = new ArrayList<Metodos>();
-			metodos.addAll(getAgregador().getMetodos());
-			Collections.sort(metodos, new MetodosComparator());
+			for (Metodos metodoX : getAgregador().getMetodos()) {
+				if(metodoX.getMetodo()==1)
+					setListaNegra(metodoX);
+				if(metodoX.getMetodo()==2)
+					setConsulta(metodoX);
+				if(metodoX.getMetodo()==3)
+					setBaja(metodoX);
+			}
 			
 			//************* LISTA NEGRA ***************//
 			//llenar los parametros para los metodos web.
-			llenarParametros(movil, metodos.get(0));
+			llenarParametros(movil);
 			
+			logger.info("SE EJECUTARA LA BAJA EN LISTA NEGRA");
 			// ejecutamos el primer metodo de lista negra
-			lecturaCompleta(ejecucionMetodo(metodos.get(0)), metodos.get(0));
-			
+			lecturaCompleta(ejecucionMetodo(getListaNegra()), getListaNegra(), 1);
+
 			//********* CONSULTA DE SERVICIOS **********//
-			lecturaCompleta(ejecucionMetodo(metodos.get(1)), "item", metodos.get(2));
+			logger.info("SE EJECUTARA LA CONSULTA DE SERVICIOS");
+			lecturaCompleta(ejecucionMetodo(getConsulta()), getConsulta(), 2);
 		}
 	}
 	
@@ -203,7 +227,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 * @return {@link Void}
 	 * */
 	@SuppressWarnings("unchecked")
-	private void llenarParametros(String movil, Metodos metodo) throws NoSuchAlgorithmException {
+	private void llenarParametros(String movil) throws NoSuchAlgorithmException {
 		
 		setParametrosData(new HashMap<String, String>());
 		List<ParametrosSistema> parametrosSistemas = (List<ParametrosSistema>) (List<?>)getEjecucion().listData("from SDA_PARAMETROS_SISTEMA");
@@ -215,9 +239,9 @@ public class ConsultaAgregadorPorHilo extends Thread {
 		getParametrosData().put("fecha", new Date().toString());
 		getParametrosData().put("dateSMT", fechaFormated());
 		getParametrosData().put("nonce", java.util.UUID.randomUUID().toString());
-		getParametrosData().put("pass", metodo.getContrasenia());
-		getParametrosData().put("user", metodo.getUsuario());
-		getParametrosData().put("passSMT", contraseniaSMT(getParametrosData().get("nonce"), getParametrosData().get("dateSMT"), metodo.getContrasenia()));
+		getParametrosData().put("pass", getListaNegra().getContrasenia());
+		getParametrosData().put("user", getListaNegra().getUsuario());
+		getParametrosData().put("passSMT", contraseniaSMT(getParametrosData().get("nonce"), getParametrosData().get("dateSMT"), getListaNegra().getContrasenia()));
 		
 	}
 	
@@ -271,6 +295,13 @@ public class ConsultaAgregadorPorHilo extends Thread {
 			}
 		}
 		
+		if(metodo.getMetodo()==3)
+		{
+			getParametrosData().remove("servicioActivado");
+			getParametrosData().remove("servicio");
+			getParametrosData().remove("marcacion");
+		}
+		
 		if (metodo.getSeguridad() == 0) 
 		{
 			return invokeOperation(metodo, null);
@@ -283,74 +314,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 		return null;
 	}
 
-	/**
-	 * Metodo que recibe el documento Soap Response y este hace la lectura de la
-	 * lista de nodos que obtiene para procesarlos y buscar la {@link Respuesta}
-	 * deseada
-	 * 
-	 * @author Edwin Mejia - Avantia Consultores
-	 * @param doc
-	 *            {@link Document}
-	 * @param nodeNameToReader
-	 *            {@link String}
-	 * @param metodo
-	 *            {@link Metodos}
-	 * @return {@link Void}
-	 * @throws Exception 
-	 * */
-	private synchronized void lecturaCompleta(Document doc, String dato, Metodos metodo) throws Exception {
-		doc.getDocumentElement().normalize();
-		if (doc.getDocumentElement().hasChildNodes()) {
-			NodeList nodeList = doc.getDocumentElement().getChildNodes();
-			lecturaListadoNodos2(nodeList, dato, metodo);
-		}
-	}
-
-	/**
-	 * Metodo recursivo, para la lectura de nodos del Soap Response que se ha
-	 * recibido de la consulta de los {@link Agregadores} a su vez este metodo
-	 * se encarga de guardar en la base de datos as {@link Respuesta} obtenidas
-	 * 
-	 * @author Edwin Mejia - Avantia Consultores
-	 * @param nodeList
-	 *            {@link NodeList}
-	 * @param nodeNameToReader
-	 *            {@link String} nombre del nodo que andamos buscando dentro del listado
-	 * @return {@link Void}
-	 * @throws Exception 
-	 * */
-	private void lecturaListadoNodos2(NodeList nodeList, String nodeNameToReader, Metodos metodoBaja) throws Exception {
-		for (int i = 0; i < nodeList.getLength(); i++) {
-			Node node = nodeList.item(i);
-			if (node.getNodeType() == Node.ELEMENT_NODE) {
-				if(node.getNodeName().equals(nodeNameToReader))
-				{
-					if(node.getFirstChild().getNodeValue().trim().isEmpty()){
-						if(indiceServicios>0){
-							//********* BAJA DE SERVICIOS **********//
-							if(getParametrosData().get("servicioActivado").equals("1"))//el servicio esta activado y hay que darle de baja
-								ejecucionMetodo(metodoBaja);
-						}
-						indiceServicios ++;
-						indice = 1;
-					}else{
-						if(indice==1)
-							getParametrosData().put("servicio", node.getFirstChild().getNodeValue().trim());
-						if(indice==1)
-							getParametrosData().put("servicioActivado", node.getFirstChild().getNodeValue().trim());
-						if(indice==5)
-							getParametrosData().put("marcacion", node.getFirstChild().getNodeValue().trim());
-						
-						indice++;
-					}
-				}
-				
-				if (node.hasChildNodes())
-					lecturaListadoNodos2(node.getChildNodes(), nodeNameToReader, metodoBaja);
-			}
-		}
-	}
-	
+	private boolean validateBrowserResponse = false;
 	private int indiceServicios = 0;
 	private int indice = 1;
 	
@@ -360,48 +324,45 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 * deseada
 	 * 
 	 * @author Edwin Mejia - Avantia Consultores
-	 * @param doc
-	 *            {@link Document}
-	 * @param metodo
-	 *            {@link Metodos}
+	 * @param doc {@link Document}
+	 * @param metodo {@link Metodos}
 	 * @return {@link Void}
+	 * @throws Exception 
 	 * */
-	private synchronized void lecturaCompleta(Document doc, Metodos metodo) {
+	private void lecturaCompleta(Document doc, Metodos metodo, int lectura) throws Exception 
+	{
+		logger.info("Mensaje Enviado:");
+		logger.info(metodo.getInputMessageText());
+		
+		logger.info("Mensaje Recibido:");
+		logger.info(getStringFromDocument(doc));
+		
 		doc.getDocumentElement().normalize();
-		logger.info("A buscar cada respuesta");
-		for (Respuesta respuesta : metodo.getRespuestas()) {
-			if (doc.getDocumentElement().hasChildNodes()) {
+		for (Respuesta respuesta : metodo.getRespuestas()) 
+		{
+			if (doc.getDocumentElement().hasChildNodes()) 
+			{
 				NodeList nodeList = doc.getDocumentElement().getChildNodes();
-				lecturaListadoNodos(nodeList, respuesta.getNombre(), metodo);
-				
-				if(!validateBrowserResponse){
-					LogDepuracion objGuardar = new LogDepuracion();
-					objGuardar.setNumero(getParametrosData().get("movil"));
-					objGuardar.setRespuesta("No se encontro el nodo " + respuesta.getNombre() +" dentro del documento " + getStringFromDocument(doc));
-					objGuardar.setEstadoTransaccion("fallida");
-					objGuardar.setFechaTransaccion(new Date());
-					objGuardar.setMetodo(metodo);
-					objGuardar.setEnvio(metodo.getInputMessageText());
-					objGuardar.setTipoTransaccion(getTipoDepuracion());
-					if(getUsuarioSistema().getId()==null){
-						logger.warn("El usuario no pudo ser obtenido; para no detener el flujo, se guardara con el usuario maestro");
-						objGuardar.setUsuarioSistema(getEjecucion().usuarioMaestro());
-					}else{
-						objGuardar.setUsuarioSistema(getUsuarioSistema());
+				if(lectura==1)
+				{
+					lecturaListadoNodos1(nodeList, respuesta.getNombre(), metodo, getStringFromDocument(doc));
+					if(!validateBrowserResponse)
+					{
+						logger.warn("No se encontro el tag " + respuesta.getNombre() );
+						guardarRespuesta(metodo, getStringFromDocument(doc), "Error");
 					}
-					
-					
-					logger.info("A guardar a la bd la respuesta");
-					getEjecucion().createData(objGuardar);
-				}else{
-					validateBrowserResponse = false;
+					else
+					{
+						validateBrowserResponse = false;
+					}
 				}
+				if(lectura==2)
+					lecturaListadoNodos2(nodeList, respuesta.getNombre(), getStringFromDocument(doc));
+				
 			}
 		}
 	}
 	
-	boolean validateBrowserResponse = false;
-
 	/**
 	 * Metodo recursivo, para la lectura de nodos del Soap Response que se ha
 	 * recibido de la consulta de los {@link Agregadores} a su vez este metodo
@@ -417,35 +378,117 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 *            en la base de datos
 	 * @return {@link Void}
 	 * */
-	private void lecturaListadoNodos(NodeList nodeList, String nodeNameToReader, Metodos metodo) {
-		logger.info("buscando el nodo " + nodeNameToReader);
-		for (int i = 0; i < nodeList.getLength(); i++) {
+	private void lecturaListadoNodos1(NodeList nodeList, String nodeNameToReader, Metodos metodo, String respuesta) {
+		for (int i = 0; i < nodeList.getLength(); i++) 
+		{
 			Node node = nodeList.item(i);
-			if (node.getNodeType() == Node.ELEMENT_NODE) {
+			if (node.getNodeType() == Node.ELEMENT_NODE) 
+			{
 				if(node.getNodeName().equals(nodeNameToReader))
 				{
-					LogDepuracion objGuardar = new LogDepuracion();
-					objGuardar.setNumero(getParametrosData().get("movil"));
-					objGuardar.setRespuesta(node.getTextContent());
-					objGuardar.setEstadoTransaccion("Exitosa");
-					objGuardar.setFechaTransaccion(new Date());
-					objGuardar.setMetodo(metodo);
-					objGuardar.setEnvio(metodo.getInputMessageText());
-					objGuardar.setTipoTransaccion(getTipoDepuracion());
-					objGuardar.setUsuarioSistema(getUsuarioSistema());
+					if(node.getTextContent().equals("1"))
+						guardarRespuesta(metodo, respuesta, "Exito");
+					if(node.getTextContent().equals("0"))
+						guardarRespuesta(metodo, respuesta, "Fallo");
 					
-					logger.info("A guardar a la bd la respuesta");
-					getEjecucion().createData(objGuardar);
 					
 					validateBrowserResponse = true;
 				}
 				
 				if (node.hasChildNodes())
-					lecturaListadoNodos(node.getChildNodes(), nodeNameToReader, metodo);
+					lecturaListadoNodos1(node.getChildNodes(), nodeNameToReader, metodo, respuesta);
 			}
 		}
 	}
 	
+	/**
+	 * Metodo recursivo, para la lectura de nodos del Soap Response que se ha
+	 * recibido de la consulta de los {@link Agregadores} a su vez este metodo
+	 * se encarga de guardar en la base de datos as {@link Respuesta} obtenidas
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @param nodeList
+	 *            {@link NodeList}
+	 * @param nodeNameToReader
+	 *            {@link String} nombre del nodo que andamos buscando dentro del listado
+	 * @return {@link Void}
+	 * @throws Exception 
+	 * */
+	private void lecturaListadoNodos2(NodeList nodeList, String nodeNameToReader, String respuesta) throws Exception {
+		for (int i = 0; i < nodeList.getLength(); i++) {
+			Node node = nodeList.item(i);
+			if (node.getNodeType() == Node.ELEMENT_NODE) {
+				if(node.getNodeName().equals(nodeNameToReader))
+				{
+					if(node.getFirstChild()==null || node.getFirstChild().getNodeValue()==null)
+					{
+						if(indiceServicios>0)
+						{
+							//********* BAJA DE SERVICIOS **********//
+							if(getParametrosData().containsKey("servicioActivado"))
+							{
+								if(getParametrosData().get("servicioActivado").equals("1"))
+								{
+									//Guardamos la respuesta de la consulta
+									guardarRespuesta(getConsulta(), respuesta, "Exito");
+									
+									//ejecutamos el metodo de bajar servicios activos
+									lecturaCompleta(ejecucionMetodo(getBaja()), getBaja(), 1);
+								}
+							}
+						}
+						indiceServicios ++;
+						indice = 1;
+					}else{
+						if(indice==1)
+						{
+							getParametrosData().put("servicio", (node.getFirstChild().getNodeValue()==null?"":node.getFirstChild().getNodeValue().trim()));
+							logger.info("El Servicio " + getParametrosData().get("servicio"));
+						}
+						if(indice==2)
+						{
+							getParametrosData().put("servicioActivado", (node.getFirstChild().getNodeValue()==null?"":node.getFirstChild().getNodeValue().trim()));
+							logger.info("Activado " + getParametrosData().get("servicioActivado"));
+						}
+						if(indice==5)
+						{
+							getParametrosData().put("marcacion", (node.getFirstChild().getNodeValue()==null?"":node.getFirstChild().getNodeValue().trim()));
+							logger.info("Marcacion Corta " + getParametrosData().get("marcacion"));
+						}
+						indice++;
+					}
+				}
+				
+				//recursive
+				if (node.hasChildNodes())
+					lecturaListadoNodos2(node.getChildNodes(), nodeNameToReader, respuesta);
+			}
+		}
+	}
+	
+	/**
+	 * Metodo que servira para unificar el guardado de respuesta
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @param metodo
+	 * @param respuesta
+	 * @param estado
+	 * @return {@link Void}
+	 * */
+	private void guardarRespuesta(Metodos metodo, String respuesta, String estado){
+		LogDepuracion objGuardar = new LogDepuracion();
+		objGuardar.setNumero(getParametrosData().get("movil"));
+		objGuardar.setEstadoTransaccion(estado);
+		objGuardar.setFechaTransaccion(new Date());
+		objGuardar.setMetodo(metodo);
+		objGuardar.setEnvio(metodo.getInputMessageText());
+		objGuardar.setRespuesta(respuesta);
+		objGuardar.setTipoTransaccion(getTipoDepuracion());
+		objGuardar.setUsuarioSistema(getUsuarioSistema());
+		
+		logger.info("SE GUARDARA RESPUESTA EN LA BASE DE DATOS...");
+		getEjecucion().createData(objGuardar);
+	}
 
 	public List<String> getMoviles() {
 		return moviles;
@@ -462,9 +505,6 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	public void setAgregador(Agregadores agregador) {
 		this.agregador = agregador;
 	}
-	
-	
-	
 	
 	
 	//*********************************************************************************************************************************/
@@ -666,9 +706,6 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	    }
 	} 
 
-	
-	
-
 	/**
 	 * Metodo que envia realiza la conexion al servicio web e invoca al metodo a
 	 * ejecutar
@@ -771,103 +808,46 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	public void setTipoDepuracion(String tipoDepuracion) {
 		this.tipoDepuracion = tipoDepuracion;
 	}
-}
 
-
-//*********************************************************************************************************************************/
-	//		cliente SIN SSL es un cliente normal sin seguridad RPC
-	//*********************************************************************************************************************************/
-
-	
 	/**
-	 * Llenar con los parametros requeridos para el llamdo de el web services
-	 * para la comunicacion con los servicios parametrizados
-	 * 
-	 * @author Emejia - Avantia Consultores
-	 * @param definitionArgument
-	 *            - es en objeto vienen los dos marametros listos para consumir
-	 *            el web services SMG3 donde viene el objeto y el dato para el
-	 *            trace level del SMG3
-	 * @param operacion
-	 *            - este es el nombre de la operacion que se va a efectuar
-	 *            dentro de servicio web ya sea para consultar una estrategia o
-	 *            para actualizar dichas estrategias
-	 * @throws Exception
-	 * *//*
-	@Deprecated
-	public String consultarServicio(Map<String, Object> definitionArgument, String operacion) throws Exception{
-		WebServicesClient stub = new WebServicesClient();
-		stub.setAddress("http://localhost:8090/axis2/services/servicio_1.servicio_1HttpSoap11Endpoint/");
-		stub.setNamespaceURI("http://web.servicio.avantia.sv");
-		stub.setReturnType(XMLType.XSD_STRING);//XMLType.XSD_STRING or Qname
-		stub.setServiceName("servicio_1");
-		stub.setPortName("servicio_1HttpSoap11Endpoint");			
-		stub.setDefinitionArgument(definitionArgument);
-		stub.setOpertationNameInvoke(operacion); //"DACallPREBURO"
-		stub.setTimeOutSeconds(6000);
-		
-		return (String) stub.respuestaWebService();
-	}*/
+	 * @return the listaNegra
+	 */
+	private Metodos getListaNegra() {
+		return listaNegra;
+	}
 
-/*
-int ordenEjecucion = 1;
-int tamanio = getAgregador().getMetodos().size();
-boolean seguir=true;
-while(seguir)
-{
-	
-	//nos evitamos un bucle infinito
-	if( getAgregador().getMetodos().size()<1)
-	{
-		seguir = false;
-		break;
+	/**
+	 * @param listaNegra the listaNegra to set
+	 */
+	private void setListaNegra(Metodos listaNegra) {
+		this.listaNegra = listaNegra;
 	}
-	
-	for (Metodos metodo : getAgregador().getMetodos()) 
-	{
-		System.out.println("Procesando... " + metodo.getMetodo());
-		//llenar los parametros para los metodos web.
-		llenarParametros(movil, metodo);
-		
-		// este seria primero ejecutar la baja de la lista negra
-		// luego consultar el historial de servicios 
-		// buscar en ese historial de servicios los que esten activos 
-		// y de esos activos seria ejecutar la baja para cada uno de dichos servicios
-		
-		//verificar el debug de los logger
-		logger.info(">>>> " + tamanio);
-		logger.info(">>>> " + ordenEjecucion);
-		
-		//verificar esto en contra del tamaño de la lista  de metodo para hacer un bucle hasta ejecutarse en el orden deseado
-		if(ordenEjecucion == metodo.getMetodo() && ordenEjecucion <= tamanio)
-		{
-			if (metodo.getParametros() != null) 
-			{
-				for (Parametros parametro : metodo.getParametros()) 
-				{
-					metodo.setInputMessageText(metodo.getInputMessageText().replace(("_*" + parametro.getNombre() + "_*").toString() , (getParametrosData().get(parametro.getNombre())==null?"":getParametrosData().get(parametro.getNombre()))  ));
-				}
-			}
-			
-			//con el resultado debo llenar mas el getParametrosData().put("algo debo poner sgun paamerizacion de respuesta", respuesta.getposiciion);
-			logger.info("Seguridad " + metodo.getSeguridad());
-			
-			logger.info(metodo.getInputMessageText());
-			if (metodo.getSeguridad() == 0) 
-			{
-				invokeOperation(metodo, null);
-			}
-			
-			if (metodo.getSeguridad() == 1) 
-			{
-				talk(metodo);
-			}
-			ordenEjecucion++;
-		}
-		else
-		{
-			if(ordenEjecucion>tamanio)
-				seguir = false;
-		}
+
+	/**
+	 * @return the consulta
+	 */
+	private Metodos getConsulta() {
+		return consulta;
 	}
-}*/
+
+	/**
+	 * @param consulta the consulta to set
+	 */
+	private void setConsulta(Metodos consulta) {
+		this.consulta = consulta;
+	}
+
+	/**
+	 * @return the baja
+	 */
+	private Metodos getBaja() {
+		return baja;
+	}
+
+	/**
+	 * @param baja the baja to set
+	 */
+	private void setBaja(Metodos baja) {
+		this.baja = baja;
+	}
+}
