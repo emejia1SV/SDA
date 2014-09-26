@@ -51,6 +51,7 @@ import sv.avantia.depurador.agregadores.entidades.Metodos;
 import sv.avantia.depurador.agregadores.entidades.Parametros;
 import sv.avantia.depurador.agregadores.entidades.ParametrosSistema;
 import sv.avantia.depurador.agregadores.entidades.Respuesta;
+import sv.avantia.depurador.agregadores.entidades.ResultadosRespuesta;
 import sv.avantia.depurador.agregadores.entidades.UsuarioSistema;
 import sv.avantia.depurador.agregadores.jdbc.BdEjecucion;
 
@@ -205,13 +206,27 @@ public class ConsultaAgregadorPorHilo extends Thread {
 			//llenar los parametros para los metodos web.
 			llenarParametros(movil);
 			
-			logger.info("SE EJECUTARA LA BAJA EN LISTA NEGRA");
-			// ejecutamos el primer metodo de lista negra
-			lecturaCompleta(ejecucionMetodo(getListaNegra()), getListaNegra(), 1);
-
+			if(getListaNegra()!=null)
+			{
+				logger.info("SE EJECUTARA LA BAJA EN LISTA NEGRA");
+				lecturaCompleta(ejecucionMetodo(getListaNegra()), getListaNegra(), 1);
+			}
+			
 			//********* CONSULTA DE SERVICIOS **********//
-			logger.info("SE EJECUTARA LA CONSULTA DE SERVICIOS");
-			lecturaCompleta(ejecucionMetodo(getConsulta()), getConsulta(), 2);
+			if(getConsulta()!=null)
+			{
+				logger.info("SE EJECUTARA LA CONSULTA DE SERVICIOS");
+				lecturaCompleta(ejecucionMetodo(getConsulta()), getConsulta(), 2);
+			}else{
+				if(getBaja()!=null)
+				{
+					//esta opcion es solo para las bajas que no necesitan pasar por una consulta como por ejemplo el SMT
+					logger.info("SE EJECUTARA LA BAJA DE SERVICIOS");
+					lecturaCompleta(ejecucionMetodo(getBaja()), getBaja(), 1);
+				}
+				
+			}
+			
 		}
 	}
 	
@@ -230,7 +245,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	private void llenarParametros(String movil) throws NoSuchAlgorithmException {
 		
 		setParametrosData(new HashMap<String, String>());
-		List<ParametrosSistema> parametrosSistemas = (List<ParametrosSistema>) (List<?>)getEjecucion().listData("from SDA_PARAMETROS_SISTEMA");
+		List<ParametrosSistema> parametrosSistemas = (List<ParametrosSistema>) (List<?>)getEjecucion().listData("FROM SDA_PARAMETROS_SISTEMA");
 		for (ParametrosSistema parametrosSistema : parametrosSistemas) {
 			getParametrosData().put(parametrosSistema.getDato(), parametrosSistema.getValor());
 		}
@@ -345,7 +360,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 				NodeList nodeList = doc.getDocumentElement().getChildNodes();
 				if(lectura==1)
 				{
-					lecturaListadoNodos1(nodeList, respuesta.getNombre(), metodo, getStringFromDocument(doc));
+					lecturaListadoNodos1(nodeList, respuesta, metodo, getStringFromDocument(doc));
 					if(!validateBrowserResponse)
 					{
 						logger.warn("No se encontro el tag " + respuesta.getNombre() );
@@ -378,25 +393,25 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 *            en la base de datos
 	 * @return {@link Void}
 	 * */
-	private void lecturaListadoNodos1(NodeList nodeList, String nodeNameToReader, Metodos metodo, String respuesta) {
+	private void lecturaListadoNodos1(NodeList nodeList, Respuesta respuesta, Metodos metodo, String response) {
 		for (int i = 0; i < nodeList.getLength(); i++) 
 		{
 			Node node = nodeList.item(i);
 			if (node.getNodeType() == Node.ELEMENT_NODE) 
 			{
-				if(node.getNodeName().equals(nodeNameToReader))
+				if(node.getNodeName().equals(respuesta.getNombre()))
 				{
-					if(node.getTextContent().equals("1"))
-						guardarRespuesta(metodo, respuesta, "Exito");
-					if(node.getTextContent().equals("0"))
-						guardarRespuesta(metodo, respuesta, "Fallo");
-					
+					for (ResultadosRespuesta resultados : respuesta.getResultadosRespuestas()) {
+						if(node.getTextContent().equals(resultados.getDato())){
+							guardarRespuesta(metodo, response, resultados.getValor());
+						}
+					}
 					
 					validateBrowserResponse = true;
 				}
 				
 				if (node.hasChildNodes())
-					lecturaListadoNodos1(node.getChildNodes(), nodeNameToReader, metodo, respuesta);
+					lecturaListadoNodos1(node.getChildNodes(), respuesta, metodo, response);
 			}
 		}
 	}
@@ -429,11 +444,13 @@ public class ConsultaAgregadorPorHilo extends Thread {
 							{
 								if(getParametrosData().get("servicioActivado").equals("1"))
 								{
-									//Guardamos la respuesta de la consulta
+									//Guardamos la respuesta de la consulta siempre y cuando haya un servicio que bajar si no no guardara nada en la base de datos
 									guardarRespuesta(getConsulta(), respuesta, "Exito");
 									
-									//ejecutamos el metodo de bajar servicios activos
-									lecturaCompleta(ejecucionMetodo(getBaja()), getBaja(), 1);
+									if(getBaja()!=null){
+										logger.info("SE EJECUTARA LA BAJA DE SERVICIOS");
+										lecturaCompleta(ejecucionMetodo(getBaja()), getBaja(), 1);
+									}
 								}
 							}
 						}
@@ -612,7 +629,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 * @return {@link Void}
 	 * @throws Exception 
 	 * */
-	private Document talk(Metodos metodo) throws Exception {
+	private Document talk(Metodos metodo) {
 		Document doc = null;
 		try {
 			MessageFactory messageFactory = MessageFactory.newInstance();
@@ -620,42 +637,20 @@ public class ConsultaAgregadorPorHilo extends Thread {
 					new MimeHeaders(),
 					new ByteArrayInputStream(metodo.getInputMessageText().getBytes(Charset.forName("UTF-8"))));
 
-			// View input
-			//msg.writeTo(System.out);
-
 			// Trust to certificates
 			doTrustToCertificates();
 
-			logger.info("Enviando el mensaje");
 			// SOAPMessage rp = conn.call(msg, urlval);
 			SOAPMessage rp = sendMessage(msg, metodo.getEndPoint());
 
-			// View the output
-			//rp.writeTo(System.out);
-			logger.info("Respuesta recibida");
-			logger.info(rp.toString());
 			return toDocument(rp);
-			
-			
-			
-			//lecturaCompleta(doc, metodo);
 		} 
 		catch (Exception e) 
 		{
-			logger.error("Error al nvocar con seguridad " + e.getMessage());
-			LogDepuracion objGuardar = new LogDepuracion();
-			objGuardar.setNumero(getParametrosData().get("movil"));
-			objGuardar.setRespuesta( doc==null ? e.getMessage() : doc.getTextContent() );
-			objGuardar.setEstadoTransaccion("Error al procesar");
-			objGuardar.setFechaTransaccion(new Date());
-			objGuardar.setMetodo(metodo);
-			objGuardar.setEnvio(metodo.getInputMessageText());
-			objGuardar.setTipoTransaccion(getTipoDepuracion());
-			objGuardar.setUsuarioSistema(getUsuarioSistema());
-			
-			getEjecucion().createData(objGuardar);
-			throw e;
+			logger.error("ERROR AL INVOCAR EL METODO CON SEGURIDAD");
+			guardarRespuesta(metodo, getStringFromDocument(doc), "Error");
 		}
+		return doc;
 	}
 	
 	/**
