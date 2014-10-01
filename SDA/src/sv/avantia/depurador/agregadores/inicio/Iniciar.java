@@ -9,7 +9,6 @@ import sv.avantia.depurador.agregadores.entidades.Agregadores;
 import sv.avantia.depurador.agregadores.entidades.Pais;
 import sv.avantia.depurador.agregadores.hilo.ConsultaAgregadorPorHilo;
 import sv.avantia.depurador.agregadores.jdbc.BdEjecucion;
-import sv.avantia.depurador.agregadores.jdbc.SessionFactoryUtil;
 import sv.avantia.depurador.agregadores.utileria.Log4jInit;
 
 public class Iniciar {
@@ -52,10 +51,12 @@ public class Iniciar {
 			//iniciar la instancia a las operaciones a la base de datos
 			setEjecucion(new BdEjecucion());
 			
+			logger.info("Obtener Parametrización");
 			// consultar la parametrización
 			for (Pais pais : obtenerParmetrizacion()) 
 			{
 				if(pais.getEstado()==1){
+					logger.info("obtener numeros");
 					// consultar los numeros
 					moviles = obtenerNumeros(pais.getCodigo());
 
@@ -67,6 +68,7 @@ public class Iniciar {
 							{
 								if(!agregador.getMetodos().isEmpty())
 								{
+									logger.info("Iniciar la ejecuion del Hilo por el agregador " + agregador.getNombre_agregador());
 									// abrir un hilo pr cada agregador parametrizados
 									ConsultaAgregadorPorHilo hilo = new ConsultaAgregadorPorHilo();
 									hilo.setMoviles(moviles);
@@ -84,21 +86,21 @@ public class Iniciar {
 		} 
 		catch (Exception e) 
 		{
-			if(SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().isOpen())
+			/*if(SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().isOpen())
 	        	SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().close();
 	        	
 	        if(!SessionFactoryUtil.getSessionAnnotationFactory().isClosed())
-	        	SessionFactoryUtil.getSessionAnnotationFactory().close();
+	        	SessionFactoryUtil.getSessionAnnotationFactory().close();*/
 	        
 			logger.error("Error en el sistema de depuracion masiva automatico ", e);
 		}
 		finally
 		{
-			if(SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().isOpen())
+			/*if(SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().isOpen())
 	        	SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().close();
 	        	
 	        if(!SessionFactoryUtil.getSessionAnnotationFactory().isClosed())
-	        	SessionFactoryUtil.getSessionAnnotationFactory().close();
+	        	SessionFactoryUtil.getSessionAnnotationFactory().close();*/
 	        
 			moviles = null;
 			setEjecucion(null);

@@ -1,5 +1,7 @@
 package sv.avantia.depurador.agregadores.entidades;
 
+import java.io.Serializable;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -14,7 +16,9 @@ import javax.persistence.UniqueConstraint;
 
 @Entity(name = "SDA_RESULTADOS_RESPUESTA")
 @Table(name = "SDA_RESULTADOS_RESPUESTA", uniqueConstraints = { @UniqueConstraint(columnNames = { "ID" }) })
-public class ResultadosRespuesta {
+public class ResultadosRespuesta implements Serializable {
+
+	private static final long serialVersionUID = 1L;
 
 	@GeneratedValue(strategy = GenerationType.AUTO, generator = "Seq_Gen_Result_Respuesta")
 	@SequenceGenerator(name = "Seq_Gen_Result_Respuesta", sequenceName = "SQ_SDA_RESULTADO_RESPUESTAS")

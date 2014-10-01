@@ -363,7 +363,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 					lecturaListadoNodos1(nodeList, respuesta, metodo, getStringFromDocument(doc));
 					if(!validateBrowserResponse)
 					{
-						logger.warn("No se encontro el tag " + respuesta.getNombre() );
+						logger.warn("No se encontro el tag " + respuesta.getCatRespuestas().getNombre() );
 						guardarRespuesta(metodo, getStringFromDocument(doc), "Error");
 					}
 					else
@@ -372,7 +372,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 					}
 				}
 				if(lectura==2)
-					lecturaListadoNodos2(nodeList, respuesta.getNombre(), getStringFromDocument(doc));
+					lecturaListadoNodos2(nodeList, respuesta.getCatRespuestas().getNombre(), getStringFromDocument(doc));
 				
 			}
 		}
@@ -393,21 +393,28 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 *            en la base de datos
 	 * @return {@link Void}
 	 * */
-	private void lecturaListadoNodos1(NodeList nodeList, Respuesta respuesta, Metodos metodo, String response) {
+	private void lecturaListadoNodos1(NodeList nodeList, Respuesta respuesta, Metodos metodo, String response) 
+	{
 		for (int i = 0; i < nodeList.getLength(); i++) 
 		{
 			Node node = nodeList.item(i);
 			if (node.getNodeType() == Node.ELEMENT_NODE) 
 			{
-				if(node.getNodeName().equals(respuesta.getNombre()))
-				{
-					for (ResultadosRespuesta resultados : respuesta.getResultadosRespuestas()) {
-						if(node.getTextContent().equals(resultados.getDato())){
-							guardarRespuesta(metodo, response, resultados.getValor());
-						}
+				if(node.getNodeName()!=null){
+					if(node.getNodeName().equals(respuesta.getCatRespuestas().getNombre()))
+					{
+						for (ResultadosRespuesta resultados : respuesta.getResultadosRespuestas()) 
+						{
+							if(node.getTextContent()!=null)
+							{
+								if(node.getTextContent().equals(resultados.getDato()))
+								{
+									guardarRespuesta(metodo, response, resultados.getValor());
+									validateBrowserResponse = true;
+								}
+							}	
+						}						
 					}
-					
-					validateBrowserResponse = true;
 				}
 				
 				if (node.hasChildNodes())
@@ -473,6 +480,12 @@ public class ConsultaAgregadorPorHilo extends Thread {
 							logger.info("Marcacion Corta " + getParametrosData().get("marcacion"));
 						}
 						indice++;
+						
+						//Esto quiere decir que si las respuesta no vienen en nodos diferentes esto hara que se reinicie el contador 
+						//como es con el agregador MOVIXLA
+						if(indice==12){
+							indice=1;
+						}
 					}
 				}
 				

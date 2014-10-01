@@ -7,22 +7,16 @@
     
     	<!-- Database connection properties - Driver, URL, user, password -->
     	<property name="hibernate.connection.driver_class">oracle.jdbc.driver.OracleDriver</property>
-        <property name="hibernate.connection.url">jdbc:oracle:thin:@192.168.1.9:1521:XE</property>
-        <property name="hibernate.connection.username">CRISTO</property>
-        <property name="hibernate.connection.password">CRISTO</property>
-        <property name="hibernate.default_schema">CRISTO</property>
+        <property name="hibernate.connection.url">jdbc:oracle:thin:@192.168.0.100:1521:orcl</property>
+        <property name="hibernate.connection.username">avantia</property>
+        <property name="hibernate.connection.password">avantia</property>
+        <property name="hibernate.default_schema">avantia</property> 
 
 		<!--
-		
 		<property name="hibernate.connection.url">jdbc:oracle:thin:@172.16.194.131:3871:AGREGADOR</property>
         <property name="hibernate.connection.username">BJ_MASIVAS</property>
         <property name="hibernate.connection.password">B92Cg54bB3</property>
         <property name="hibernate.default_schema">BJ_MASIVAS</property>
-		
-		<property name="hibernate.connection.url">jdbc:oracle:thin:@172.16.194.131:3871:AGREGADOR</property>
-        <property name="hibernate.connection.username">BJ_MASIVAS</property>
-        <property name="hibernate.connection.password">B92Cg54bB3</property>
-        <property name="hibernate.default_schema">AGREGADOR</property>
 		
 		<property name="hibernate.connection.url">jdbc:oracle:thin:@192.168.0.100:1521:orcl</property>
         <property name="hibernate.connection.username">avantia</property>
@@ -41,17 +35,20 @@
         <property name="hibernate.default_schema">SRDC_AGREGADORES</property>
 		 -->
 
-		<property name="hibernate.show_sql">true</property>
+		<property name="hibernate.show_sql">false</property>
         <property name="hibernate.format_sql">true</property>
                 
         <property name="hibernate.c3p0.acquire_increment">1</property>
         <property name="hibernate.c3p0.min_size">1</property>
-        <property name="hibernate.c3p0.max_size">10</property>
+        <property name="hibernate.c3p0.max_size">50</property>
         <property name="hibernate.c3p0.max_statements">100</property>
-        <property name="hibernate.c3p0.idle_test_period">1800</property>
+        <property name="hibernate.c3p0.idle_test_period">3000</property>
         <property name="hibernate.c3p0.timeout">1800</property>
         <property name="hibernate.c3p0.checkoutTimeout">0</property>
         <property name="hibernate.c3p0.validate">SELECT 1 FROM DUAL</property>
+        
+        <property name="hibernate.c3p0.unreturnedConnectionTimeout">59</property>
+    	<property name="hibernate.c3p0.debugUnreturnedConnectionStackTraces">true</property>
         
          <!-- org.hibernate.HibernateException: No CurrentSessionContext configured! -->
         <property name="hibernate.current_session_context_class">thread</property>
@@ -69,6 +66,8 @@
         <mapping class="sv.avantia.depurador.agregadores.entidades.Clientes_Tel"  />
         <mapping class="sv.avantia.depurador.agregadores.entidades.ParametrosSistema"  />
         <mapping class="sv.avantia.depurador.agregadores.entidades.UsuarioSistema"  />
+        <mapping class="sv.avantia.depurador.agregadores.entidades.ResultadosRespuesta"  />
+        <mapping class="sv.avantia.depurador.agregadores.entidades.CatRespuestas"  />
         
     </session-factory>
 </hibernate-configuration>

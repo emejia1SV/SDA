@@ -13,14 +13,14 @@ public class SessionFactoryUtil {
 	 * 
 	 * @author Edwin Mejia - Avantia Consultores
 	 * */
-	public static Logger logger = Logger.getLogger("avantiaLogger");
+	static Logger logger = Logger.getLogger("avantiaLogger");
 
 	/**
 	 * Creación del SessionFactory
 	 * 
 	 * @author Edwin Mejia - Avantia Consultores
 	 * */
-	private static SessionFactory sessionAnnotationFactory;
+	static SessionFactory sessionAnnotationFactory;
 	
 	
 	/**
@@ -30,22 +30,18 @@ public class SessionFactoryUtil {
 	 * @author Edwin Mejia - Avantia Consultores 
 	 * @return SessionFactory
 	 * */
-	private static SessionFactory buildSessionAnnotationFactory() {
+	static SessionFactory buildSessionAnnotationFactory() 
+	{
 		try 
 		{
-			
 			Configuration configuration = new Configuration();
 			configuration.configure("hibernate-annotation.cfg.xml");
-			logger.info("Hibernate Annotation Configuration loaded");
-
 			ServiceRegistry serviceRegistry = new StandardServiceRegistryBuilder().applySettings(configuration.getProperties()).build();
-			logger.info("Hibernate Annotation serviceRegistry created");
-
 			SessionFactory sessionFactory = configuration.buildSessionFactory(serviceRegistry);
-
-			return sessionFactory;
-		
-		} catch (Throwable ex) {
+			return sessionFactory;		
+		} 
+		catch (Throwable ex) 
+		{
 			logger.error("Initial SessionFactory creation failed." + ex);
 			throw new ExceptionInInitializerError(ex);
 		}
@@ -59,30 +55,11 @@ public class SessionFactoryUtil {
 	 * @author Edwin Mejia - Avantia Consultores
 	 * @return SessionFactory
 	 * */
-	public static SessionFactory getSessionAnnotationFactory() {
-		if (sessionAnnotationFactory == null || sessionAnnotationFactory.isClosed())
+	public static SessionFactory getSessionAnnotationFactory() 
+	{
+		if (sessionAnnotationFactory == null)
 			sessionAnnotationFactory = buildSessionAnnotationFactory();
+		
 		return sessionAnnotationFactory;
 	}
-	
-
-	/**
-	 * Metodo estatico que nos servira para cerrar la SessionFactory desde
-	 * cualquier lado en la aplicacion
-	 * 
-	 * @author Edwin Mejia - Avantia Consultores
-	 * @return SessionFactory
-	 * */
-	/*public static void closeSession(){
-		if(sessionAnnotationFactory == null)
-			return;
-		
-		if(sessionAnnotationFactory.getCurrentSession().isOpen())
-			sessionAnnotationFactory.getCurrentSession().close();
-		
-		if(!sessionAnnotationFactory.isClosed())
-			sessionAnnotationFactory.close();
-		
-		sessionAnnotationFactory = null;
-	}*/
 }

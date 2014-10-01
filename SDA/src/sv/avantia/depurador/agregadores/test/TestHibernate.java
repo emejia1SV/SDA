@@ -31,6 +31,18 @@ public class TestHibernate {
 	public static void main(String[] args) {
 		try {
 			
+			/*try 
+			{
+				List<Respuesta> depuracions = ((List<Respuesta>) (List<?>) listData("FROM SDA_RESPUESTAS"));
+				System.out.println(depuracions.size());
+				for (Respuesta logDepuracion : depuracions) {
+					System.out.println(logDepuracion.getCatRespuestas().getNombre());
+				}
+			} 
+			catch (Exception e) 
+			{
+				System.err.println("Error:No se pudo cargar la tabla de depuracion");
+			}*/
 		ParametrosSistema sistema = (ParametrosSistema)	obtenerDato("FROM SDA_PARAMETROS_SISTEMA WHERE KEY = 'host'");
 			System.out.println(sistema.getValor());
 			if(SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().isOpen())
@@ -167,7 +179,7 @@ public class TestHibernate {
 		
 		Respuesta respuesta2 = new Respuesta();
 		respuesta2.setId(1);
-		respuesta2.setNombre("AddGrayListResponse");
+		//respuesta2.setNombre("AddGrayListResponse");
 		//respuesta.setPosicion(2);
 		//respuesta2.setTipo("java.lang.String");
 		respuesta2.setMetodo(metodo2);
@@ -217,7 +229,7 @@ public class TestHibernate {
 		
 		Respuesta respuesta3 = new Respuesta();
 		respuesta3.setId(2);
-		respuesta3.setNombre("DeleteGrayListResponse");
+		//respuesta3.setNombre("DeleteGrayListResponse");
 		//respuesta3.setTipo("java.lang.String");
 		respuesta3.setMetodo(metodo3);
 		
@@ -694,7 +706,7 @@ public class TestHibernate {
 		
 		Respuesta respuesta = new Respuesta();
 		respuesta.setId(1);
-		respuesta.setNombre("ni idea");
+		//respuesta.setNombre("ni idea");
 		//respuesta.setPosicion(2);
 		//respuesta.setTipo("java.lang.String");
 		respuesta.setMetodo(metodo);

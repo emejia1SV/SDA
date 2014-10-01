@@ -39,13 +39,18 @@ public class BdEjecucion implements Serializable {
 	 * */
 	public List<?> listData(String query) 
 	{
-		Session session = SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession();
+		
+		Session session = SessionFactoryUtil.getSessionAnnotationFactory().openSession();;
 		List<?> objs = null;
 		try 
 		{
 			session.beginTransaction();
 			objs = session.createQuery(query).list();
 			session.getTransaction().commit();
+			session.flush();
+            session.clear();
+            session.close();
+			//SessionFactoryUtil.shutdown();
 			return objs;
 		} 
 		catch (RuntimeException e) 
@@ -58,6 +63,10 @@ public class BdEjecucion implements Serializable {
 				{
 					// Second try catch as the rollback could fail as well
 					session.getTransaction().rollback();
+					//SessionFactoryUtil.shutdown();
+					session.flush();
+		            session.clear();
+		            session.close();
 				} 
 				catch (HibernateException e1) 
 				{
@@ -81,14 +90,17 @@ public class BdEjecucion implements Serializable {
 	 * */
 	public void deleteData(Object obj) 
 	{
-		Session session = SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession();
+		Session session = SessionFactoryUtil.getSessionAnnotationFactory().openSession();
 		try 
 		{
 			
 			session.beginTransaction();
 			session.delete(obj);
 			session.getTransaction().commit();
-		
+			//SessionFactoryUtil.shutdown();
+			session.flush();
+            session.clear();
+            session.close();
 		} 
 		catch (RuntimeException e) 
 		{
@@ -99,6 +111,10 @@ public class BdEjecucion implements Serializable {
 				{
 					// Second try catch as the rollback could fail as well
 					session.getTransaction().rollback();
+					//SessionFactoryUtil.shutdown();
+					session.flush();
+		            session.clear();
+		            session.close();
 				} 
 				catch (HibernateException e1) 
 				{
@@ -118,14 +134,18 @@ public class BdEjecucion implements Serializable {
 	 * @param obj
 	 *            {java.lang.Object} return void
 	 * */
-	public void createData(Object obj) 
+	public Object createData(Object obj) 
 	{
-		Session session = SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession();
+		Session session = SessionFactoryUtil.getSessionAnnotationFactory().openSession();
 		try 
 		{
 			session.beginTransaction();
-			session.save(obj);
+			obj = session.save(obj);
 			session.getTransaction().commit();
+			//SessionFactoryUtil.shutdown();
+			session.flush();
+            session.clear();
+            session.close();
 		} 
 		catch (RuntimeException e) 
 		{
@@ -136,6 +156,10 @@ public class BdEjecucion implements Serializable {
 				{
 					// Second try catch as the rollback could fail as well
 					session.getTransaction().rollback();
+					//SessionFactoryUtil.shutdown();
+					session.flush();
+		            session.clear();
+		            session.close();
 				} 
 				catch (HibernateException e1) 
 				{
@@ -145,6 +169,7 @@ public class BdEjecucion implements Serializable {
 				throw e;
 			}
 		}
+		return obj;
 	}
 
 	/**
@@ -157,13 +182,17 @@ public class BdEjecucion implements Serializable {
 	 * */
 	public void updateData(Object obj) 
 	{
-		Session session = SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession();
+		Session session = SessionFactoryUtil.getSessionAnnotationFactory().openSession();
 		try 
 		{
 			
 			session.beginTransaction();
 			session.update(obj);
 			session.getTransaction().commit();
+			//SessionFactoryUtil.shutdown();
+			session.flush();
+            session.clear();
+            session.close();
 		
 		} 
 		catch (RuntimeException e) 
@@ -176,6 +205,10 @@ public class BdEjecucion implements Serializable {
 				{
 					// Second try catch as the rollback could fail as well
 					session.getTransaction().rollback();
+					//SessionFactoryUtil.shutdown();
+					session.flush();
+		            session.clear();
+		            session.close();
 				} 
 				catch (HibernateException e1) 
 				{
@@ -198,7 +231,7 @@ public class BdEjecucion implements Serializable {
 	public boolean verificarUsuario(String usuario, String pass) 
 	{
 		boolean existe=false;
-		Session session = SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession();
+		Session session = SessionFactoryUtil.getSessionAnnotationFactory().openSession();
 		try 
 		{
 			session.beginTransaction();
@@ -207,6 +240,10 @@ public class BdEjecucion implements Serializable {
             query.setString("pass", pass);
             existe = !(((UsuarioSistema) query.uniqueResult())==(null));
             session.getTransaction().commit();
+            //SessionFactoryUtil.shutdown();
+            session.flush();
+            session.clear();
+            session.close();
 		} 
 		catch (RuntimeException e) 
 		{
@@ -219,6 +256,10 @@ public class BdEjecucion implements Serializable {
 				{
 					// Second try catch as the rollback could fail as well
 					session.getTransaction().rollback();
+					//SessionFactoryUtil.shutdown();
+					session.flush();
+		            session.clear();
+		            session.close();
 				} 
 				catch (HibernateException e1) 
 				{
@@ -241,13 +282,17 @@ public class BdEjecucion implements Serializable {
 	public Object obtenerDato(String queryCompleto) 
 	{
 		Object out = null;
-		Session session = SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession();
+		Session session = SessionFactoryUtil.getSessionAnnotationFactory().openSession();
 		try 
 		{
 			session.beginTransaction();
 			Query query = session.createQuery(queryCompleto);
 			out = query.uniqueResult();
             session.getTransaction().commit();
+            //SessionFactoryUtil.shutdown();
+            session.flush();
+            session.clear();
+            session.close();
 		} 
 		catch (RuntimeException e) 
 		{
@@ -259,6 +304,10 @@ public class BdEjecucion implements Serializable {
 				{
 					// Second try catch as the rollback could fail as well
 					session.getTransaction().rollback();
+					//SessionFactoryUtil.shutdown();
+					session.flush();
+		            session.clear();
+		            session.close();
 				} 
 				catch (HibernateException e1) 
 				{

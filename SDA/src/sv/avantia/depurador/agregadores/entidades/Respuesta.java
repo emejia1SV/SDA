@@ -13,6 +13,7 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
@@ -29,8 +30,9 @@ public class Respuesta implements Serializable {
 	@Column(name = "ID", nullable = false)
 	private Integer id;
 
-	@Column(name = "NOMBRE", nullable = false)
-	private String nombre;
+	@OneToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "ID_RESPUESTA")
+	private CatRespuestas catRespuestas;
 
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "ID_METODO")
@@ -51,20 +53,6 @@ public class Respuesta implements Serializable {
 	 */
 	public void setId(Integer id) {
 		this.id = id;
-	}
-
-	/**
-	 * @return the nombre
-	 */
-	public String getNombre() {
-		return nombre;
-	}
-
-	/**
-	 * @param nombre the nombre to set
-	 */
-	public void setNombre(String nombre) {
-		this.nombre = nombre;
 	}
 
 	/**
@@ -98,6 +86,20 @@ public class Respuesta implements Serializable {
 	
 	@Override
 	public String toString() {
-		return "Respuesta [id=" + id + ", nombre=" + nombre + "]";
+		return "Respuesta [id=" + id + "]";
+	}
+
+	/**
+	 * @return the catRespuestas
+	 */
+	public CatRespuestas getCatRespuestas() {
+		return catRespuestas;
+	}
+
+	/**
+	 * @param catRespuestas the catRespuestas to set
+	 */
+	public void setCatRespuestas(CatRespuestas catRespuestas) {
+		this.catRespuestas = catRespuestas;
 	}
 }
