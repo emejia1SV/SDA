@@ -1,15 +1,15 @@
 package sv.avantia.depurador.agregadores.entidades;
 
 import java.io.Serializable;
+import java.util.List;
 
-import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.OneToOne;
+import javax.persistence.OneToMany;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
@@ -29,9 +29,9 @@ public class CatRespuestas implements Serializable {
 	@Column(name = "NOMBRE", nullable = false)
 	private String nombre;
 	
-	@OneToOne(fetch = FetchType.EAGER, mappedBy = "catRespuestas", cascade = CascadeType.ALL)
-	private Respuesta respuesta;
-
+	@OneToMany(mappedBy="catRespuesta", fetch = FetchType.EAGER)
+	private List<Respuesta> respuestas;
+	
 	/**
 	 * @return the id
 	 */
@@ -62,6 +62,20 @@ public class CatRespuestas implements Serializable {
 		this.nombre = nombre;
 	}
 
+	/**
+	 * @return the respuestas
+	 */
+	public List<Respuesta> getRespuestas() {
+		return respuestas;
+	}
+
+	/**
+	 * @param respuestas the respuestas to set
+	 */
+	public void setRespuestas(List<Respuesta> respuestas) {
+		this.respuestas = respuestas;
+	}
+	
 	/*
 	 * (non-Javadoc)
 	 * 

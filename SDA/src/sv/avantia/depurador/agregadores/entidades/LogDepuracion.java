@@ -32,7 +32,7 @@ public class LogDepuracion implements Serializable {
 
 	@Column(name = "RESPUESTA")
 	private String respuesta;
-	
+
 	@Column(name = "ENVIO")
 	private String envio;
 
@@ -44,6 +44,9 @@ public class LogDepuracion implements Serializable {
 
 	@Column(name = "TIPO_TRANSACCION")
 	private String tipoTransaccion;
+
+	@Column(name = "DESCRIPCION_ESTADO")
+	private String descripcionEstado;
 
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "ID_METODO")
@@ -181,14 +184,33 @@ public class LogDepuracion implements Serializable {
 	}
 
 	/**
-	 * @param envio the envio to set
+	 * @param envio
+	 *            the envio to set
 	 */
 	public void setEnvio(String envio) {
 		this.envio = envio;
 	}
-	
+
+	/**
+	 * @return the descripcionEstado
+	 */
+	public String getDescripcionEstado() {
+		return descripcionEstado;
+	}
+
+	/**
+	 * @param descripcionEstado
+	 *            the descripcionEstado to set
+	 */
+	public void setDescripcionEstado(String descripcionEstado) {
+		this.descripcionEstado = descripcionEstado;
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
 	@Override
 	public String toString() {
-		return "LogDepuracion [id=" + id + "]";
+		return id.toString();
 	}
 }

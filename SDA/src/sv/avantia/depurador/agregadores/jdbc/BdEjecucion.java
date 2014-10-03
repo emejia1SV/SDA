@@ -50,31 +50,31 @@ public class BdEjecucion implements Serializable {
 			session.flush();
             session.clear();
             session.close();
-			//SessionFactoryUtil.shutdown();
 			return objs;
 		} 
 		catch (RuntimeException e) 
 		{
 			logger.error("Error al querer realizar una consulta en la base de datos", e);
 			
-			if (session.getTransaction() != null && session.getTransaction().isActive()) 
-			{
-				try 
-				{
-					// Second try catch as the rollback could fail as well
-					session.getTransaction().rollback();
-					//SessionFactoryUtil.shutdown();
-					session.flush();
-		            session.clear();
-		            session.close();
-				} 
-				catch (HibernateException e1) 
-				{
-					logger.error("Error al querer realizar rolback a la base de datos", e1);
-				}
-				// throw again the first exception
-				throw e;
-			}
+			if(session!=null)
+				if(session.isOpen())
+					if (session.getTransaction() != null && session.getTransaction().isActive()) 
+					{
+						try 
+						{
+							// Second try catch as the rollback could fail as well
+							session.getTransaction().rollback();
+							session.flush();
+				            session.clear();
+				            session.close();
+						} 
+						catch (HibernateException e1) 
+						{
+							logger.error("Error al querer realizar rolback a la base de datos", e1);
+						}
+						// throw again the first exception
+						throw e;
+					}
 		}
 		return objs;
 
@@ -97,7 +97,6 @@ public class BdEjecucion implements Serializable {
 			session.beginTransaction();
 			session.delete(obj);
 			session.getTransaction().commit();
-			//SessionFactoryUtil.shutdown();
 			session.flush();
             session.clear();
             session.close();
@@ -106,23 +105,24 @@ public class BdEjecucion implements Serializable {
 		{
 			logger.error("Error al querer realizar una eliminación en la base de datos", e);
 			
-			if (session.getTransaction() != null && session.getTransaction().isActive()) {
-				try 
-				{
-					// Second try catch as the rollback could fail as well
-					session.getTransaction().rollback();
-					//SessionFactoryUtil.shutdown();
-					session.flush();
-		            session.clear();
-		            session.close();
-				} 
-				catch (HibernateException e1) 
-				{
-					logger.error("Error al querer realizar rolback a la base de datos", e1);
-				}
-				// throw again the first exception
-				throw e;
-			}
+			if(session!=null)
+				if(session.isOpen())
+					if (session.getTransaction() != null && session.getTransaction().isActive()) {
+						try 
+						{
+							// Second try catch as the rollback could fail as well
+							session.getTransaction().rollback();
+							session.flush();
+				            session.clear();
+				            session.close();
+						} 
+						catch (HibernateException e1) 
+						{
+							logger.error("Error al querer realizar rolback a la base de datos", e1);
+						}
+						// throw again the first exception
+						throw e;
+					}
 		}
 	}
 
@@ -142,7 +142,6 @@ public class BdEjecucion implements Serializable {
 			session.beginTransaction();
 			obj = session.save(obj);
 			session.getTransaction().commit();
-			//SessionFactoryUtil.shutdown();
 			session.flush();
             session.clear();
             session.close();
@@ -151,23 +150,24 @@ public class BdEjecucion implements Serializable {
 		{
 			logger.error("Error al querer realizar una insercion a la base de datos", e);
 
-			if (session.getTransaction() != null && session.getTransaction().isActive()) {
-				try 
-				{
-					// Second try catch as the rollback could fail as well
-					session.getTransaction().rollback();
-					//SessionFactoryUtil.shutdown();
-					session.flush();
-		            session.clear();
-		            session.close();
-				} 
-				catch (HibernateException e1) 
-				{
-					logger.error("Error al querer realizar rolback a la base de datos", e1);
-				}
-				// throw again the first exception
-				throw e;
-			}
+			if(session!=null)
+				if(session.isOpen())
+					if (session.getTransaction() != null && session.getTransaction().isActive()) {
+						try 
+						{
+							// Second try catch as the rollback could fail as well
+							session.getTransaction().rollback();
+							session.flush();
+				            session.clear();
+				            session.close();
+						} 
+						catch (HibernateException e1) 
+						{
+							logger.error("Error al querer realizar rolback a la base de datos", e1);
+						}
+						// throw again the first exception
+						throw e;
+					}
 		}
 		return obj;
 	}
@@ -189,7 +189,6 @@ public class BdEjecucion implements Serializable {
 			session.beginTransaction();
 			session.update(obj);
 			session.getTransaction().commit();
-			//SessionFactoryUtil.shutdown();
 			session.flush();
             session.clear();
             session.close();
@@ -199,24 +198,25 @@ public class BdEjecucion implements Serializable {
 		{
 			logger.error("Error al querer realizar una actualización a la base de datos", e);
 			
-			if (session.getTransaction() != null && session.getTransaction().isActive()) 
-			{
-				try 
-				{
-					// Second try catch as the rollback could fail as well
-					session.getTransaction().rollback();
-					//SessionFactoryUtil.shutdown();
-					session.flush();
-		            session.clear();
-		            session.close();
-				} 
-				catch (HibernateException e1) 
-				{
-					logger.error("Error al querer realizar rolback a la base de datos", e1);
-				}
-				// throw again the first exception
-				throw e;
-			}
+			if(session!=null)
+				if(session.isOpen())
+					if (session.getTransaction() != null && session.getTransaction().isActive()) 
+					{
+						try 
+						{
+							// Second try catch as the rollback could fail as well
+							session.getTransaction().rollback();
+							session.flush();
+				            session.clear();
+				            session.close();
+						} 
+						catch (HibernateException e1) 
+						{
+							logger.error("Error al querer realizar rolback a la base de datos", e1);
+						}
+						// throw again the first exception
+						throw e;
+					}
 		}
 	}
 
@@ -240,7 +240,6 @@ public class BdEjecucion implements Serializable {
             query.setString("pass", pass);
             existe = !(((UsuarioSistema) query.uniqueResult())==(null));
             session.getTransaction().commit();
-            //SessionFactoryUtil.shutdown();
             session.flush();
             session.clear();
             session.close();
@@ -249,25 +248,25 @@ public class BdEjecucion implements Serializable {
 		{
 			existe=false;
 			logger.error("Error al querer consultar usuario a la base de datos", e);
-			
-			if (session.getTransaction() != null && session.getTransaction().isActive()) 
-			{
-				try 
-				{
-					// Second try catch as the rollback could fail as well
-					session.getTransaction().rollback();
-					//SessionFactoryUtil.shutdown();
-					session.flush();
-		            session.clear();
-		            session.close();
-				} 
-				catch (HibernateException e1) 
-				{
-					logger.error("Error al querer realizar rolback a la base de datos", e1);
-				}
-				// throw again the first exception
-				throw e;
-			}
+			if(session!=null)
+				if(session.isOpen())
+					if (session.getTransaction() != null && session.getTransaction().isActive()) 
+					{
+						try 
+						{
+							// Second try catch as the rollback could fail as well
+							session.getTransaction().rollback();
+							session.flush();
+				            session.clear();
+				            session.close();
+						} 
+						catch (HibernateException e1) 
+						{
+							logger.error("Error al querer realizar rolback a la base de datos", e1);
+						}
+						// throw again the first exception
+						throw e;
+					}
 		}
 		return existe;
 	}
@@ -289,33 +288,31 @@ public class BdEjecucion implements Serializable {
 			Query query = session.createQuery(queryCompleto);
 			out = query.uniqueResult();
             session.getTransaction().commit();
-            //SessionFactoryUtil.shutdown();
-            session.flush();
             session.clear();
             session.close();
 		} 
 		catch (RuntimeException e) 
 		{
 			logger.error("Error al querer consultar un valor de la base de datos", e);
-			
-			if (session.getTransaction() != null && session.getTransaction().isActive()) 
-			{
-				try 
-				{
-					// Second try catch as the rollback could fail as well
-					session.getTransaction().rollback();
-					//SessionFactoryUtil.shutdown();
-					session.flush();
-		            session.clear();
-		            session.close();
-				} 
-				catch (HibernateException e1) 
-				{
-					logger.error("Error al querer realizar rolback a la base de datos", e1);
-				}
-				// throw again the first exception
-				throw e;
-			}
+			if(session!=null)
+				if(session.isOpen())
+					if (session.getTransaction() != null && session.getTransaction().isActive()) 
+					{
+						try 
+						{
+							// Second try catch as the rollback could fail as well
+							session.getTransaction().rollback();
+							session.flush();
+				            session.clear();
+				            session.close();
+						} 
+						catch (HibernateException e1) 
+						{
+							logger.error("Error al querer realizar rolback a la base de datos", e1);
+						}
+						// throw again the first exception
+						throw e;
+					}
 		}
 		return out;
 	}

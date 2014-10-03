@@ -1,6 +1,9 @@
 package sv.avantia.depurador.agregadores.test;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.hibernate.Criteria;
@@ -10,12 +13,12 @@ import org.hibernate.Session;
 import org.hibernate.criterion.Projections;
 
 import sv.avantia.depurador.agregadores.entidades.Agregadores;
+import sv.avantia.depurador.agregadores.entidades.CatRespuestas;
 import sv.avantia.depurador.agregadores.entidades.Clientes_Tel;
 import sv.avantia.depurador.agregadores.entidades.LogDepuracion;
 import sv.avantia.depurador.agregadores.entidades.Metodos;
 import sv.avantia.depurador.agregadores.entidades.Pais;
 import sv.avantia.depurador.agregadores.entidades.Parametros;
-import sv.avantia.depurador.agregadores.entidades.ParametrosSistema;
 import sv.avantia.depurador.agregadores.entidades.Respuesta;
 import sv.avantia.depurador.agregadores.jdbc.BdEjecucion;
 import sv.avantia.depurador.agregadores.jdbc.SessionFactoryUtil;
@@ -30,21 +33,78 @@ public class TestHibernate {
 	 */	
 	public static void main(String[] args) {
 		try {
+			CatRespuestas[] resArray1 = null;
+			CatRespuestas[] resArrayBase = null;
+			CatRespuestas[] resArraySelected = null;
+			@SuppressWarnings("unchecked")
+			List<CatRespuestas> res = ((List<CatRespuestas>) (List<?>) listData("FROM SDA_CAT_RESPUESTAS"));
+			resArray1 = res.toArray(new CatRespuestas[res.size()]);
+			
+			resArrayBase=new CatRespuestas[3];
+			resArraySelected=new CatRespuestas[3];
+			
+			resArrayBase[0]=resArray1[0];
+			resArrayBase[1]=resArray1[3];
+			resArrayBase[2]=resArray1[5];
+			resArraySelected[0]=resArray1[1];
+			resArraySelected[1]=resArray1[2];
+			resArraySelected[2]=resArray1[4];
+			
+			System.out.println("****Grupo Base******");
+			for (int i = 0; i < resArrayBase.length; i++) {
+				System.out.println(resArrayBase[i].getNombre());
+			}
+			
+			System.out.println("*****Grupo Selected******");
+			for (int i = 0; i < resArraySelected.length; i++) {
+				System.out.println(resArraySelected[i].getNombre());
+			}
+			
+			System.out.println("*****mantener Lista*****");
+			HashSet<CatRespuestas> marge1 = (HashSet<CatRespuestas>) mantener(new HashSet<CatRespuestas>(Arrays.asList(resArrayBase)), new HashSet<CatRespuestas>(Arrays.asList(resArraySelected)));
+			for (CatRespuestas catRespuestas : marge1) {
+				System.out.println(catRespuestas.getNombre());
+			}
+			
+			System.out.println("*****eliminar Lista******");
+			HashSet<CatRespuestas> marge2 = (HashSet<CatRespuestas>) eliminar(new HashSet<CatRespuestas>(Arrays.asList(resArrayBase)), new HashSet<CatRespuestas>(Arrays.asList(resArraySelected)));
+			for (CatRespuestas catRespuestas : marge2) {
+				System.out.println(catRespuestas.getNombre());
+			}
+			
+			System.out.println("*****guardar Lista*****");
+			HashSet<CatRespuestas> marge3 = (HashSet<CatRespuestas>) guardar(new HashSet<CatRespuestas>(Arrays.asList(resArrayBase)), new HashSet<CatRespuestas>(Arrays.asList(resArraySelected)));
+			for (CatRespuestas catRespuestas : marge3) {
+				System.out.println(catRespuestas.getNombre());
+			}
+		
+			
 			
 			/*try 
 			{
-				List<Respuesta> depuracions = ((List<Respuesta>) (List<?>) listData("FROM SDA_RESPUESTAS"));
+				@SuppressWarnings("unchecked")
+				List<Pais> depuracions = ((List<Pais>) (List<?>) listData("FROM SDA_PAISES"));
 				System.out.println(depuracions.size());
-				for (Respuesta logDepuracion : depuracions) {
-					System.out.println(logDepuracion.getCatRespuestas().getNombre());
+				for (Pais logDepuracion : depuracions) {
+					System.out.println(logDepuracion.getNombre());
+					for (Agregadores agregadores : logDepuracion.getAgregadores()) {
+						System.out.println(agregadores.getNombre_agregador());
+						for (Metodos metodos : agregadores.getMetodos()) {
+							System.out.println(metodos.getSoapActionURI());
+							for (Respuesta respuesta : metodos.getRespuestas()) {
+								System.out.println(respuesta.getId());
+								
+							}
+						}
+					}
 				}
 			} 
 			catch (Exception e) 
 			{
 				System.err.println("Error:No se pudo cargar la tabla de depuracion");
 			}*/
-		ParametrosSistema sistema = (ParametrosSistema)	obtenerDato("FROM SDA_PARAMETROS_SISTEMA WHERE KEY = 'host'");
-			System.out.println(sistema.getValor());
+		//ParametrosSistema sistema = (ParametrosSistema)	obtenerDato("FROM SDA_PARAMETROS_SISTEMA WHERE KEY = 'host'");
+		//	System.out.println(sistema.getValor());
 			if(SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().isOpen())
 	        	SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().close();
 	        	
@@ -64,6 +124,86 @@ public class TestHibernate {
 		
 	}
 	
+	public static <T> Set<T> mantener(Set<T> base, Set<T> selected) {
+		Set<T> res = new HashSet<T>(base);
+		res.retainAll(selected);
+		return res;
+	}
+	
+	public static <T> Set<T> guardar(Set<T> base, Set<T> selected) {
+		Set<T> res = new HashSet<T>(selected);
+		res.removeAll(base);
+		return res;
+	}
+	
+	public static <T> Set<T> eliminar(Set<T> base, Set<T> selected) {
+		Set<T> res = new HashSet<T>(base);
+		res.removeAll(selected);
+		return res;
+	}
+	
+	
+	/**
+	 * Metodo para poder intersectar dos colecciones de datos y verificar la
+	 * diferencia entre las colecciones - Conserva sólo los elementos de esta
+	 * colección A que se encuentran en la colección especificada B
+	 * 
+	 * @author Emejia - Avantia Consultores
+	 * @param a
+	 *            Primera coleccion
+	 * @param b
+	 *            Segunda coleccion
+	 * 
+	 * @return una sola coleccion de diferencias
+	 * */
+	public static <T> Set<T> intersectarColeccion(Set<T> a, Set<T> b) {
+		Set<T> res = new HashSet<T>(a);
+		res.retainAll(b);
+		return res;
+	}
+
+	/**
+	 * Metodo para poder verificar la diferencia en dos colecciones de datos
+	 * removiendo todos los datos de la coleccion a que vienen en la coleccion b
+	 * Elimina todos los elementos de esta colección A, que también figuran en
+	 * la colección especificada B
+	 * 
+	 * @author Emejia - Avantia Consultores
+	 * @param a
+	 *            Primera coleccion
+	 * @param b
+	 *            Segunda coleccion
+	 * 
+	 * @return una sola coleccion de diferencias
+	 * */
+	public static <T> Set<T> diferenciarColeecion(Set<T> a, Set<T> b) {
+		Set<T> res = new HashSet<T>(a);
+		res.removeAll(b);
+		return res;
+	}
+
+	/**
+	 * Metodo para poder verificar la diferencia simetrica entre dos colecciones
+	 * donde verificamos la diferencia entre la coleccion A y la coleccion B y
+	 * luego verificamos la diferencia de la coleccion b y la coleccion A para
+	 * poder agregar todos las diferencias de la segunda diferencia a la primera
+	 * diferencia
+	 * 
+	 * @author Emejia - Avantia Consultores
+	 * @param a
+	 *            Primera coleccion
+	 * @param b
+	 *            Segunda coleccion
+	 * 
+	 * @return una sola coleccion
+	 * */
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public static <T> Set<T> diferenciaSimetrica(Set<T> a, Set<T> b) {
+		Set res = diferenciarColeecion(a, b);
+		Set bSINa = diferenciarColeecion(b, a);
+		res.addAll(bSINa);
+		return res;
+	}
 	public static Object obtenerDato(String queryCompleto) 
 	{
 		Object out = null;

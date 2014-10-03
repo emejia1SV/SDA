@@ -14,6 +14,9 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 @Entity(name = "SDA_RESULTADOS_RESPUESTA")
 @Table(name = "SDA_RESULTADOS_RESPUESTA", uniqueConstraints = { @UniqueConstraint(columnNames = { "ID" }) })
 public class ResultadosRespuesta implements Serializable {
@@ -32,9 +35,14 @@ public class ResultadosRespuesta implements Serializable {
 
 	@Column(name = "VALOR", nullable = false)
 	private String valor;
-	
+
 	@Column(name = "DATO", nullable = false)
 	private String dato;
+
+	@ManyToOne(fetch = FetchType.EAGER)
+	@OnDelete(action=OnDeleteAction.NO_ACTION)
+	@JoinColumn(name = "ID_RESULTADO")
+	private CatResultados catResultado;
 
 	/**
 	 * @return the id
@@ -89,17 +97,35 @@ public class ResultadosRespuesta implements Serializable {
 	}
 
 	/**
-	 * @param dato the dato to set
+	 * @param dato
+	 *            the dato to set
 	 */
 	public void setDato(String dato) {
 		this.dato = dato;
 	}
 
-	/* (non-Javadoc)
+	/**
+	 * @return the catResultado
+	 */
+	public CatResultados getCatResultado() {
+		return catResultado;
+	}
+
+	/**
+	 * @param catResultado
+	 *            the catResultado to set
+	 */
+	public void setCatResultado(CatResultados catResultado) {
+		this.catResultado = catResultado;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
 	public String toString() {
-		return "ResultadosRespuesta [id=" + id + "]";
+		return id.toString();
 	}
 }

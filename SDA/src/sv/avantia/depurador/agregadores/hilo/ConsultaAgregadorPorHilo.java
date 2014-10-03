@@ -363,7 +363,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 					lecturaListadoNodos1(nodeList, respuesta, metodo, getStringFromDocument(doc));
 					if(!validateBrowserResponse)
 					{
-						logger.warn("No se encontro el tag " + respuesta.getCatRespuestas().getNombre() );
+						logger.warn("No se encontro el tag " + respuesta.getNombre() );
 						guardarRespuesta(metodo, getStringFromDocument(doc), "Error");
 					}
 					else
@@ -372,7 +372,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 					}
 				}
 				if(lectura==2)
-					lecturaListadoNodos2(nodeList, respuesta.getCatRespuestas().getNombre(), getStringFromDocument(doc));
+					lecturaListadoNodos2(nodeList, respuesta.getNombre(), getStringFromDocument(doc));
 				
 			}
 		}
@@ -401,7 +401,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 			if (node.getNodeType() == Node.ELEMENT_NODE) 
 			{
 				if(node.getNodeName()!=null){
-					if(node.getNodeName().equals(respuesta.getCatRespuestas().getNombre()))
+					if(node.getNodeName().equalsIgnoreCase(respuesta.getNombre()))
 					{
 						for (ResultadosRespuesta resultados : respuesta.getResultadosRespuestas()) 
 						{
@@ -440,7 +440,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 		for (int i = 0; i < nodeList.getLength(); i++) {
 			Node node = nodeList.item(i);
 			if (node.getNodeType() == Node.ELEMENT_NODE) {
-				if(node.getNodeName().equals(nodeNameToReader))
+				if(node.getNodeName().equalsIgnoreCase(nodeNameToReader))
 				{
 					if(node.getFirstChild()==null || node.getFirstChild().getNodeValue()==null)
 					{
