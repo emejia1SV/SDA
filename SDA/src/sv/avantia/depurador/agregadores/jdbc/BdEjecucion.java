@@ -228,16 +228,15 @@ public class BdEjecucion implements Serializable {
 	 * @param obj
 	 *            {java.lang.Object} return void
 	 * */
-	public boolean verificarUsuario(String usuario, String pass) 
+	public boolean verificarUsuario(String usuario) 
 	{
 		boolean existe=false;
 		Session session = SessionFactoryUtil.getSessionAnnotationFactory().openSession();
 		try 
 		{
 			session.beginTransaction();
-			Query query = session.createQuery("from SDA_USUARIO_SISTEMA where usuario = :usuario and contrasenia = :pass");
+			Query query = session.createQuery("from SDA_USUARIO_SISTEMA where usuario = :usuario");
 			query.setString("usuario", usuario);
-            query.setString("pass", pass);
             existe = !(((UsuarioSistema) query.uniqueResult())==(null));
             session.getTransaction().commit();
             session.flush();

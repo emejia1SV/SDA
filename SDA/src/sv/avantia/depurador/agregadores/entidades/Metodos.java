@@ -20,12 +20,12 @@ import javax.persistence.UniqueConstraint;
 
 @Entity(name = "SDA_METODOS")
 @Table(name = "SDA_METODOS", uniqueConstraints = { @UniqueConstraint(columnNames = { "ID" }) })
-public class Metodos implements Serializable{
+public class Metodos implements Serializable {
 
 	private static final long serialVersionUID = 1L;
-	
-	@GeneratedValue(strategy=GenerationType.AUTO, generator="Seq_Gen_Metodo")
-    @SequenceGenerator(name="Seq_Gen_Metodo", sequenceName="SQ_SDA_METODOS")
+
+	@GeneratedValue(strategy = GenerationType.AUTO, generator = "Seq_Gen_Metodo")
+	@SequenceGenerator(name = "Seq_Gen_Metodo", sequenceName = "SQ_SDA_METODOS")
 	@Id
 	@Column(name = "ID", nullable = false)
 	private Integer id;
@@ -38,43 +38,22 @@ public class Metodos implements Serializable{
 
 	@Column(name = "CONTRASENIA")
 	private String contrasenia;
-	
+
 	@Column(name = "END_POINT", nullable = false)
 	private String endPoint;
-	
+
 	@Column(name = "SEGURIDAD")
 	private Integer seguridad;
-	
+
 	@Column(name = "INPUTMESSAGETEXT", nullable = false)
 	private String inputMessageText;
-	
-	@Column(name = "INPUTMESSAGENAME")
-	private String inputMessageName;
-		
-	@Column(name = "SERVICE_NAME")
-	private String serviceName;
 
 	@Column(name = "SOAPACTIONURI")
 	private String soapActionURI;
-	
-	@Column(name = "NAMESPACEURI")
-	private String namespaceURI;
 
-	@Column(name = "STYLE")
-	private String style;
+	@Column(name = "CONTENT_TYPE")
+	private String contentType;
 
-	@Column(name = "TARGETMETHODNAME")
-	private String targetMethodName;
-
-	@Column(name = "TARGETOBJECTURI")
-	private String targetObjectURI;
-
-	@Column(name = "TARGETURL")
-	private String targetURL;
-
-	@Column(name = "WSDL_AGREGADOR")
-	private String wsdl_Agregador;
-	
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "ID_AGREGADOR")
 	private Agregadores agregador;
@@ -104,14 +83,6 @@ public class Metodos implements Serializable{
 		this.agregador = agregador;
 	}
 
-	public String getInputMessageName() {
-		return inputMessageName;
-	}
-
-	public void setInputMessageName(String inputMessageName) {
-		this.inputMessageName = inputMessageName;
-	}
-
 	public String getInputMessageText() {
 		return inputMessageText;
 	}
@@ -120,60 +91,12 @@ public class Metodos implements Serializable{
 		this.inputMessageText = inputMessageText;
 	}
 
-	public String getNamespaceURI() {
-		return namespaceURI;
-	}
-
-	public void setNamespaceURI(String namespaceURI) {
-		this.namespaceURI = namespaceURI;
-	}
-
 	public String getSoapActionURI() {
 		return this.soapActionURI;
 	}
 
 	public void setSoapActionURI(String soapActionURI) {
 		this.soapActionURI = soapActionURI;
-	}
-
-	public String getStyle() {
-		return style;
-	}
-
-	public void setStyle(String style) {
-		this.style = style;
-	}
-
-	public String getTargetMethodName() {
-		return targetMethodName;
-	}
-
-	public void setTargetMethodName(String targetMethodName) {
-		this.targetMethodName = targetMethodName;
-	}
-
-	public String getTargetObjectURI() {
-		return targetObjectURI;
-	}
-
-	public void setTargetObjectURI(String targetObjectURI) {
-		this.targetObjectURI = targetObjectURI;
-	}
-
-	public String getTargetURL() {
-		return targetURL;
-	}
-
-	public void setTargetURL(String targetURL) {
-		this.targetURL = targetURL;
-	}
-
-	public String getWsdl_Agregador() {
-		return wsdl_Agregador;
-	}
-
-	public void setWsdl_Agregador(String wsdl_Agregador) {
-		this.wsdl_Agregador = wsdl_Agregador;
 	}
 
 	public String getUsuario() {
@@ -192,16 +115,8 @@ public class Metodos implements Serializable{
 		this.contrasenia = contrasenia;
 	}
 
-	public String getServiceName() {
-		return serviceName;
-	}
-
-	public void setServiceName(String serviceName) {
-		this.serviceName = serviceName;
-	}
-
 	public Set<Parametros> getParametros() {
-		if(parametros == null)
+		if (parametros == null)
 			parametros = new HashSet<Parametros>();
 		return parametros;
 	}
@@ -233,7 +148,7 @@ public class Metodos implements Serializable{
 	public void setEndPoint(String endPoint) {
 		this.endPoint = endPoint;
 	}
-	
+
 	public Integer getSeguridad() {
 		return seguridad;
 	}
@@ -241,7 +156,6 @@ public class Metodos implements Serializable{
 	public void setSeguridad(Integer seguridad) {
 		this.seguridad = seguridad;
 	}
-	
 
 	/**
 	 * @return the metodo
@@ -251,12 +165,28 @@ public class Metodos implements Serializable{
 	}
 
 	/**
-	 * @param metodo the metodo to set
+	 * @param metodo
+	 *            the metodo to set
 	 */
 	public void setMetodo(Integer metodo) {
 		this.metodo = metodo;
 	}
-	
+
+	/**
+	 * @return the contentType
+	 */
+	public String getContentType() {
+		return contentType;
+	}
+
+	/**
+	 * @param contentType
+	 *            the contentType to set
+	 */
+	public void setContentType(String contentType) {
+		this.contentType = contentType;
+	}
+
 	@Override
 	public String toString() {
 		return "Metodos [id=" + id + ", metodo=" + metodo + "]";

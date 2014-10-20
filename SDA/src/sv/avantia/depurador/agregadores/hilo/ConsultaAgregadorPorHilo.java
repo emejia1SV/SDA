@@ -24,6 +24,9 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.soap.MessageFactory;
 import javax.xml.soap.MimeHeaders;
 import javax.xml.soap.SOAPConnection;
@@ -39,11 +42,19 @@ import javax.xml.transform.dom.DOMResult;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.xerces.impl.dv.util.Base64;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 import sv.avantia.depurador.agregadores.entidades.Agregadores;
 import sv.avantia.depurador.agregadores.entidades.LogDepuracion;
@@ -60,7 +71,36 @@ import com.cladonia.xml.webservice.wsdl.WSDLException;
 import com.cladonia.xml.webservice.wsdl.XMLSupport;
 
 public class ConsultaAgregadorPorHilo extends Thread {
+	
+	/**
+	 * construct default
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * */
+	public ConsultaAgregadorPorHilo(){
+		
+	}
+	
+	/**
+	 * construct
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @param name
+	 * */
+	public ConsultaAgregadorPorHilo(String name){
+		super.setName(name);
+	}
 
+	/**
+	 * Bandera para saber si debemos guardar el la ejecucion de la consulta o no
+	 * */
+	private boolean guardarConsulta=true;
+	
+	/**
+	 * Valor con el que se efectuara el timeOut Excepcion
+	 * */
+	private long timeOutMillisecond=5000;
+	
 	/**
 	 * Instancia del {@link Metodos} para la lista Negra
 	 * 
@@ -140,14 +180,16 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	
 	public void run() {
 		try {
-			logger.info("=======================	SE CONSULTARA UN AGREGADOR	==============================" );
+			logger.info("=======================	SE CONSULTARA EL AGREGADOR " + getAgregador().getNombre_agregador() + "	=======================" );
 			procesarServiciosWeb();
 		} catch (Exception e) {
 			logger.error("ERROR DE EJECUCION DENTRO DE LA DEPURACION DEL AGREGADOR " + getAgregador().getNombre_agregador() + e.getMessage(), e);
+			LogManager.shutdown();
 			this.interrupt();
 		} finally{
 			logger.info("======== SE TERMINO DE EJECUTAR EL HILO PARA EL AGREGADOR " + getAgregador().getNombre_agregador() + " ========");
-			this.interrupt();
+			//LogManager.shutdown();
+			//this.interrupt();
 		}
 	}
 	
@@ -188,12 +230,13 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 * */
 	public synchronized void invocacionPorNumero(String movil) throws Exception
 	{
-		logger.info("SE DEPURARA EL NUMERO " + movil);
+		logger.debug("SE DEPURARA EL NUMERO " + movil + " Se ejecutaran " + getAgregador().getMetodos().size() + " metodos el " );
 		
 		if(getAgregador().getMetodos().size()>0)
 		{
 			//ordernar Los metodos web por su tipo de ejecucion
 			for (Metodos metodoX : getAgregador().getMetodos()) {
+				System.out.println(metodoX.getMetodo());
 				if(metodoX.getMetodo()==1)
 					setListaNegra(metodoX);
 				if(metodoX.getMetodo()==2)
@@ -201,28 +244,42 @@ public class ConsultaAgregadorPorHilo extends Thread {
 				if(metodoX.getMetodo()==3)
 					setBaja(metodoX);
 			}
-			
-			//************* LISTA NEGRA ***************//
+
 			//llenar los parametros para los metodos web.
 			llenarParametros(movil);
 			
+			//************* LISTA NEGRA ***************//
 			if(getListaNegra()!=null)
 			{
-				logger.info("SE EJECUTARA LA BAJA EN LISTA NEGRA");
-				lecturaCompleta(ejecucionMetodo(getListaNegra()), getListaNegra(), 1);
+				logger.debug("SE EJECUTARA LA BAJA EN LISTA NEGRA PARA " + getAgregador().getNombre_agregador());
+				try {
+					lecturaCompleta(ejecucionMetodo(getListaNegra()), getListaNegra(), 1);
+				} catch (Exception e) {
+					logger.error("Se ejecuto un error al consultar la lista negra");
+				}
+				
 			}
 			
 			//********* CONSULTA DE SERVICIOS **********//
 			if(getConsulta()!=null)
 			{
-				logger.info("SE EJECUTARA LA CONSULTA DE SERVICIOS");
-				lecturaCompleta(ejecucionMetodo(getConsulta()), getConsulta(), 2);
+				logger.debug("SE EJECUTARA LA CONSULTA DE SERVICIOS PARA " + getAgregador().getNombre_agregador());
+				try {
+					lecturaCompleta(ejecucionMetodo(getConsulta()), getConsulta(), 2);
+				} catch (Exception e) {
+					logger.error("Se ejecuto un error al realizar la consulta de servicios");
+				}
+				
 			}else{
 				if(getBaja()!=null)
 				{
 					//esta opcion es solo para las bajas que no necesitan pasar por una consulta como por ejemplo el SMT
-					logger.info("SE EJECUTARA LA BAJA DE SERVICIOS");
-					lecturaCompleta(ejecucionMetodo(getBaja()), getBaja(), 1);
+					logger.debug("SE EJECUTARA LA BAJA DE SERVICIOS PARA " + getAgregador().getNombre_agregador());
+					try {
+						lecturaCompleta(ejecucionMetodo(getBaja()), getBaja(), 1);
+					} catch (Exception e) {
+						logger.error("Se ejecuto un error al realizar la baja de servicios sin pasar por la consulta previamente");
+					}
 				}
 				
 			}
@@ -247,7 +304,15 @@ public class ConsultaAgregadorPorHilo extends Thread {
 		setParametrosData(new HashMap<String, String>());
 		List<ParametrosSistema> parametrosSistemas = (List<ParametrosSistema>) (List<?>)getEjecucion().listData("FROM SDA_PARAMETROS_SISTEMA");
 		for (ParametrosSistema parametrosSistema : parametrosSistemas) {
-			getParametrosData().put(parametrosSistema.getDato(), parametrosSistema.getValor());
+			if(parametrosSistema.getDato().equals("timeOutWebServices"))
+			{
+				timeOutMillisecond = new Long(parametrosSistema.getValor()).longValue();
+			}
+			else
+			{
+				getParametrosData().put(parametrosSistema.getDato(), parametrosSistema.getValor());
+			}
+			
 		}
 		getParametrosData().put("movil", movil);
 		getParametrosData().put("date", new Date().toString());
@@ -273,10 +338,16 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 * @return {@link String}
 	 * */
 	private String contraseniaSMT(String nonce, String timestamp, String pass) throws NoSuchAlgorithmException{
-		String concatenacion = nonce.concat(timestamp).concat(pass);
-		MessageDigest md = MessageDigest.getInstance("SHA-1");
-		md.update(concatenacion.getBytes());
-		return Base64.encode(md.digest());
+		if(nonce!=null && timestamp !=null && pass != null){
+			String concatenacion = nonce.concat(timestamp).concat(pass);
+			MessageDigest md = MessageDigest.getInstance("SHA-1");
+			md.update(concatenacion.getBytes());
+			return Base64.encode(md.digest());
+		}else{
+			//logger.debug(getAgregador().getNombre_agregador());
+			//logger.debug("No se generara contraraseña porque Se obtubo nonce " + nonce + " time " +  timestamp  + " pass "+  pass );
+			return "";
+		}
 	}
 	
 	/**
@@ -301,7 +372,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 * @return {@link Document}
 	 * @throws Exception
 	 * */
-	private synchronized Document ejecucionMetodo(Metodos metodo) throws Exception{
+	private synchronized Document ejecucionMetodo(Metodos metodo) {
 		if (metodo.getParametros() != null) 
 		{
 			for (Parametros parametro : metodo.getParametros()) 
@@ -317,14 +388,27 @@ public class ConsultaAgregadorPorHilo extends Thread {
 			getParametrosData().remove("marcacion");
 		}
 		
-		if (metodo.getSeguridad() == 0) 
-		{
-			return invokeOperation(metodo, null);
-		}
-		
-		if (metodo.getSeguridad() == 1) 
-		{
-			return talk(metodo);
+		try {
+			// primero verificamos SI es de tipo asmx
+			if(metodo.getEndPoint().endsWith("asmx")){
+				return asmx(metodo);
+			}
+			
+			// si NO es asmx y no tiene NO es por https
+			if (metodo.getSeguridad() == 0) 
+			{
+				return invokeOperation(metodo, null);
+			}
+			
+			// si NO es asmx y no tiene SI es por https
+			if (metodo.getSeguridad() == 1) 
+			{
+				return talk(metodo);
+			}
+		} catch (Exception e) {
+			//logger.error(getAgregador().getNombre_agregador() + " ERROR AL INVOCAR AL INVOCAR EL METODO " + metodo.getMetodo());
+        	//guardarRespuesta(metodo, "", "Error " , "ERROR AL INVOCAR EL METODO " + metodo.getMetodo());
+        	return xmlError(getAgregador().getNombre_agregador() + " ERROR AL INVOCAR AL INVOCAR EL METODO " + metodo.getMetodo());
 		}
 		return null;
 	}
@@ -344,38 +428,71 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 * @return {@link Void}
 	 * @throws Exception 
 	 * */
-	private void lecturaCompleta(Document doc, Metodos metodo, int lectura) throws Exception 
+	private void lecturaCompleta(Document doc, Metodos metodo, int lectura) 
 	{
-		logger.info("Mensaje Enviado:");
-		logger.info(metodo.getInputMessageText());
+		logger.debug("Mensaje Enviado:");
+		logger.debug(metodo.getInputMessageText());
 		
-		logger.info("Mensaje Recibido:");
-		logger.info(getStringFromDocument(doc));
+		if(doc==null){
+			logger.error(getAgregador().getNombre_agregador() + " No se obtuvo data en la respuesta recibida...");
+			guardarRespuesta(metodo, getStringFromDocument(doc), "Error", "Al recibir la respuesta no traia datos para procesar, Favor revisar el log de respuesta para verificar lo recibido");
+			return;
+		}
 		
+		if(doc.getDocumentElement()==null){
+			logger.error(getAgregador().getNombre_agregador() + "No se obtuvo data en la respuesta recibida...");
+			guardarRespuesta(metodo, getStringFromDocument(doc), "Error", "Al recibir la respuesta no traia datos para procesar, Favor revisar el log de respuesta para verificar lo recibido");
+			return;
+		}
+
 		doc.getDocumentElement().normalize();
-		for (Respuesta respuesta : metodo.getRespuestas()) 
-		{
-			if (doc.getDocumentElement().hasChildNodes()) 
+		
+		if(doc.getDocumentElement().getNodeName().equals("errorSDA")){
+			logger.error(getStringFromDocument(doc));
+			guardarRespuesta(metodo, getStringFromDocument(doc), "Error " , "GENERO ERROR EL CONSULTAR EL TIEMPO AL INVOCAR EL METODO SIN SEGURIDAD");
+			return;
+		}else{
+			logger.debug("Mensaje Recibido:");
+			logger.debug(getStringFromDocument(doc));
+			
+			for (Respuesta respuesta : metodo.getRespuestas()) 
 			{
-				NodeList nodeList = doc.getDocumentElement().getChildNodes();
-				if(lectura==1)
+				if (doc.getDocumentElement().hasChildNodes()) 
 				{
-					lecturaListadoNodos1(nodeList, respuesta, metodo, getStringFromDocument(doc));
-					if(!validateBrowserResponse)
+					NodeList nodeList = doc.getDocumentElement().getChildNodes();
+					if(lectura==1)
 					{
-						logger.warn("No se encontro el tag " + respuesta.getNombre() );
-						guardarRespuesta(metodo, getStringFromDocument(doc), "Error");
+						lecturaListadoNodos1(nodeList, respuesta, metodo, getStringFromDocument(doc));
+						if(!validateBrowserResponse)
+						{
+							lecturaListadoNodos3(nodeList, metodo, getStringFromDocument(doc));
+							if(!validateBrowserResponse)
+							{
+								logger.warn(getAgregador().getNombre_agregador() + "No se encontro el tag " + respuesta.getNombre() );
+								guardarRespuesta(metodo, getStringFromDocument(doc), "Error", "No se encontro el valor parametrizado dentro de la respuesta recibida");
+							}
+							else
+							{
+								validateBrowserResponse = false;
+							}						
+						}
+						else
+						{
+							validateBrowserResponse = false;
+						}
 					}
-					else
-					{
-						validateBrowserResponse = false;
+					if(lectura==2){
+						lecturaListadoNodos2(nodeList, respuesta.getNombre());
+						if(guardarConsulta){
+							guardarRespuesta(getConsulta(), getStringFromDocument(doc), "Sin Servicios", "Se proceso la consulta pero no existian servicios activos");
+						}
+						guardarConsulta=true;//es por si en la ejecucion de la baja de servicios me lo habian convertido a false
 					}
 				}
-				if(lectura==2)
-					lecturaListadoNodos2(nodeList, respuesta.getNombre(), getStringFromDocument(doc));
-				
 			}
 		}
+		
+		
 	}
 	
 	/**
@@ -409,7 +526,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 							{
 								if(node.getTextContent().equals(resultados.getDato()))
 								{
-									guardarRespuesta(metodo, response, resultados.getValor());
+									guardarRespuesta(metodo, response, resultados.getValor(), "Se proceso de forma satisfactoria la consulta requerida");
 									validateBrowserResponse = true;
 								}
 							}	
@@ -436,10 +553,12 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 * @return {@link Void}
 	 * @throws Exception 
 	 * */
-	private void lecturaListadoNodos2(NodeList nodeList, String nodeNameToReader, String respuesta) throws Exception {
-		for (int i = 0; i < nodeList.getLength(); i++) {
+	private void lecturaListadoNodos2(NodeList nodeList, String nodeNameToReader) {
+		for (int i = 0; i < nodeList.getLength(); i++) 
+		{
 			Node node = nodeList.item(i);
-			if (node.getNodeType() == Node.ELEMENT_NODE) {
+			if (node.getNodeType() == Node.ELEMENT_NODE) 
+			{
 				if(node.getNodeName().equalsIgnoreCase(nodeNameToReader))
 				{
 					if(node.getFirstChild()==null || node.getFirstChild().getNodeValue()==null)
@@ -452,32 +571,39 @@ public class ConsultaAgregadorPorHilo extends Thread {
 								if(getParametrosData().get("servicioActivado").equals("1"))
 								{
 									//Guardamos la respuesta de la consulta siempre y cuando haya un servicio que bajar si no no guardara nada en la base de datos
-									guardarRespuesta(getConsulta(), respuesta, "Exito");
-									
+									//guardarRespuesta(getConsulta(), respuesta, "Exito", "Se proceso de forma satisfactoria la solicitud para dar de baja el servicio");
+									guardarConsulta = false;
 									if(getBaja()!=null){
-										logger.info("SE EJECUTARA LA BAJA DE SERVICIOS");
-										lecturaCompleta(ejecucionMetodo(getBaja()), getBaja(), 1);
+										logger.debug("SE EJECUTARA LA BAJA DE SERVICIOS PARA " + getAgregador().getNombre_agregador());
+										try {
+											lecturaCompleta(ejecucionMetodo(getBaja()), getBaja(), 1);
+										} catch (Exception e) {
+											logger.error("Se ejecuto un error al realizar la baja de servicios se consulto previamente");
+										}
+										
 									}
 								}
 							}
+							
 						}
+						
 						indiceServicios ++;
 						indice = 1;
 					}else{
 						if(indice==1)
 						{
 							getParametrosData().put("servicio", (node.getFirstChild().getNodeValue()==null?"":node.getFirstChild().getNodeValue().trim()));
-							logger.info("El Servicio " + getParametrosData().get("servicio"));
+							logger.debug("El Servicio " + getParametrosData().get("servicio"));
 						}
 						if(indice==2)
 						{
 							getParametrosData().put("servicioActivado", (node.getFirstChild().getNodeValue()==null?"":node.getFirstChild().getNodeValue().trim()));
-							logger.info("Activado " + getParametrosData().get("servicioActivado"));
+							logger.debug("Activado " + getParametrosData().get("servicioActivado"));
 						}
 						if(indice==5)
 						{
 							getParametrosData().put("marcacion", (node.getFirstChild().getNodeValue()==null?"":node.getFirstChild().getNodeValue().trim()));
-							logger.info("Marcacion Corta " + getParametrosData().get("marcacion"));
+							logger.debug("Marcacion Corta " + getParametrosData().get("marcacion"));
 						}
 						indice++;
 						
@@ -491,7 +617,47 @@ public class ConsultaAgregadorPorHilo extends Thread {
 				
 				//recursive
 				if (node.hasChildNodes())
-					lecturaListadoNodos2(node.getChildNodes(), nodeNameToReader, respuesta);
+					lecturaListadoNodos2(node.getChildNodes(), nodeNameToReader);
+			}
+		}
+	}
+	
+	/**
+	 * Metodo recursivo, para la lectura de nodos del Soap Response que se ha
+	 * recibido de la consulta de los {@link Agregadores} a su vez este metodo
+	 * se encarga de guardar en la base de datos as {@link Respuesta} obtenidas
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @param nodeList
+	 *            {@link NodeList}
+	 * @param nodeNameToReader
+	 *            {@link String} nombre del nodo que andamos buscando dentro del listado
+	 * @param metodo
+	 *            {@link Metodos} insumo para poder guardar la {@link Respuesta}
+	 *            en la base de datos
+	 * @return {@link Void}
+	 * */
+	private void lecturaListadoNodos3(NodeList nodeList, Metodos metodo, String response) 
+	{
+		for (int i = 0; i < nodeList.getLength(); i++) 
+		{
+			Node node = nodeList.item(i);
+			if (node.getNodeType() == Node.ELEMENT_NODE) 
+			{
+				if(node.getNodeName()!=null){
+					if(node.getNodeName().equalsIgnoreCase("faultstring"))
+					{
+						if(node.getTextContent()!=null)
+						{
+							logger.debug(getAgregador().getNombre_agregador() + " Error " + node.getTextContent());
+							guardarRespuesta(metodo, response, "Error", "Se proceso recibiendo un error en el mensaje detallado de la siguiente manera " + node.getTextContent());
+							validateBrowserResponse = true;
+						}						
+					}
+				}
+				
+				if (node.hasChildNodes())
+					lecturaListadoNodos3(node.getChildNodes(), metodo, response);
 			}
 		}
 	}
@@ -505,7 +671,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 * @param estado
 	 * @return {@link Void}
 	 * */
-	private void guardarRespuesta(Metodos metodo, String respuesta, String estado){
+	private void guardarRespuesta(Metodos metodo, String respuesta, String estado, String descripcionEstado){
 		LogDepuracion objGuardar = new LogDepuracion();
 		objGuardar.setNumero(getParametrosData().get("movil"));
 		objGuardar.setEstadoTransaccion(estado);
@@ -515,11 +681,26 @@ public class ConsultaAgregadorPorHilo extends Thread {
 		objGuardar.setRespuesta(respuesta);
 		objGuardar.setTipoTransaccion(getTipoDepuracion());
 		objGuardar.setUsuarioSistema(getUsuarioSistema());
+		objGuardar.setDescripcionEstado(descripcionEstado);
 		
-		logger.info("SE GUARDARA RESPUESTA EN LA BASE DE DATOS...");
+		logger.debug("SE GUARDARA RESPUESTA EN LA BASE DE DATOS...");
 		getEjecucion().createData(objGuardar);
 	}
 
+	private Document xmlError(String error){
+		String xml = "<errorSDA>" + (error==null?"":error) +"</errorSDA>";
+		DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
+		DocumentBuilder builder;
+		try {
+			builder = builderFactory.newDocumentBuilder();
+			Document doc = builder.parse(new InputSource(new ByteArrayInputStream(xml.getBytes("utf-8")))  );
+			return doc;
+		} catch (Exception e) {
+			logger.error("No se puede generarel mensaje de error");
+			return null;
+		}
+	}
+	
 	public List<String> getMoviles() {
 		return moviles;
 	}
@@ -535,7 +716,88 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	public void setAgregador(Agregadores agregador) {
 		this.agregador = agregador;
 	}
-	
+
+	//*********************************************************************************************************************************/
+	//		cliente ASMX para las implementaciones con servicios web montados en windows 
+	//*********************************************************************************************************************************/
+
+	/**
+	 * Metodo para la invocacion de los servicios ASMX
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @param operation un bjeto {@link Metodos}
+	 * @return {@link Document}
+	 * @throws IOException
+	 * @throws ClientProtocolException
+	 * @throws ParserConfigurationException
+	 * @throws SAXException
+	 * @throws IllegalStateException
+	 * */
+	@SuppressWarnings({ "resource", "deprecation" })
+	private Document asmx(Metodos operation) throws ClientProtocolException,
+			IOException, IllegalStateException, SAXException,
+			ParserConfigurationException {
+		
+		HttpClient httpClient =null;
+		HttpPost postRequest =null;
+		HttpResponse response = null;
+		try{
+			
+			httpClient = new org.apache.http.impl.client.DefaultHttpClient();
+			// Crear la llamada al servidor
+			postRequest = new HttpPost(operation.getEndPoint());
+			StringEntity input = new StringEntity(operation.getInputMessageText());
+			input.setContentType(operation.getContentType());
+			postRequest.setEntity(input);
+			
+	        try {
+	        	// Tratar respuesta del servidor
+				response = httpClient.execute(postRequest);
+	        } catch (Exception e) {
+	        	//logger.error(getAgregador().getNombre_agregador() + " ERROR AL INVOCAR EL METODO A  TRAVES DE ASMX");
+	        	//guardarRespuesta(operation, "", "Error " , "SERROR AL INVOCAR EL METODO A  TRAVES DE ASMX");
+	        	return xmlError(getAgregador().getNombre_agregador() + " ERROR AL INVOCAR EL METODO A  TRAVES DE ASMX");
+			}
+	        
+	        try{
+				long endTimeOut = System.currentTimeMillis() + timeOutMillisecond;
+				while(true){
+					if(System.currentTimeMillis() > endTimeOut){
+						//logger.error(getAgregador().getNombre_agregador() + " GENERO TIMEOUT EXCEPCION INVOCAR EL METODO A TRAVES DE ASMX");
+						//guardarRespuesta(operation, "", "Error " , "GENERO TIMEOUT EXCEPCION INVOCAR EL METODO A TRAVES DE ASMX");
+						return xmlError(getAgregador().getNombre_agregador() + " SE GENERO TIMEOUT EXCEPCION INVOCAR EL METODO A TRAVES DE ASMX");
+					}else{	
+						if (response != null) {
+							break;
+						}
+					}
+				}
+			} catch (Exception e) {
+				//logger.error(getAgregador().getNombre_agregador() + " GENERO ERROR EL CONSULTAR EL TIEMPO AL INVOCAR EL METODO A TRAVES DE ASMX");
+				//guardarRespuesta(operation, "", "Error " , "GENERO ERROR EL CONSULTAR EL TIEMPO AL INVOCAR EL METODO A TRAVES DE ASMX");
+				return xmlError(getAgregador().getNombre_agregador() + " GENERO ERROR EL CONSULTAR EL TIEMPO AL INVOCAR EL METODO A TRAVES DE ASMX");
+			}
+			
+			
+			// factory read response
+			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+			
+			if (response.getStatusLine().getStatusCode() != 200) {
+				//logger.error(getAgregador().getNombre_agregador() + " ERROR AL INVOCAR EL METODO A  TRAVES DE ASMX");
+				//guardarRespuesta(operation, getStringFromDocument(factory.newDocumentBuilder().parse(response.getEntity().getContent())), "Error " + response.getStatusLine().getStatusCode(), "Se tuvo un error al recibir la respuesta del web services de asmx");
+				logger.error(getStringFromDocument(factory.newDocumentBuilder().parse(response.getEntity().getContent())));
+				return xmlError(getAgregador().getNombre_agregador() + " ERROR AL INVOCAR EL METODO A  TRAVES DE ASMX");
+			}
+			
+			// Obtener información de la respuesta
+			return factory.newDocumentBuilder().parse(response.getEntity().getContent());
+		}
+		finally
+		{
+			// Cierre de la conexión
+			if (httpClient != null) httpClient.getConnectionManager().shutdown();
+		}
+	}
 	
 	//*********************************************************************************************************************************/
 	//		cliente SIN SSL es un cliente normal sin seguridad
@@ -554,7 +816,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 *             algun problema en la interpretacion e invocacion de los
 	 *             servicios
 	 */
-	public Document invokeOperation(Metodos operation,File[] attachments)
+	private Document invokeOperation(Metodos operation,File[] attachments)
 	throws WSDLException
 	{
 		try{
@@ -574,16 +836,45 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	
 			// get the url
 			URL url = new URL(operation.getEndPoint());
-	
-			// send the soap message
-			return client.send(url);
 			
+			Document response = null;
 			
+			try 
+			{
+	        	// Tratar respuesta del servidor
+				response = client.send(url);
+		    } 
+			catch (Exception e) 
+			{
+				//logger.error(getAgregador().getNombre_agregador() + " ERROR AL INVOCAR EL METODO SIN SEGURIDAD");
+		        //guardarRespuesta(operation, "", "Error " , "SERROR AL INVOCAR EL METODO SIN SEGURIDAD");
+		        return xmlError(getAgregador().getNombre_agregador() + " ERROR AL INVOCAR EL METODO SIN SEGURIDAD");
+			}
+		        
+	        try{
+				long endTimeOut = System.currentTimeMillis() + timeOutMillisecond;
+				while(true){
+					if(System.currentTimeMillis() > endTimeOut){
+						//logger.error(getAgregador().getNombre_agregador() + " GENERO TIMEOUT EXCEPCION INVOCAR EL METODO SIN SEGURIDAD");
+						//guardarRespuesta(operation, "", "Error " , "GENERO TIMEOUT EXCEPCION INVOCAR EL METODO SIN SEGURIDAD");
+						return xmlError(getAgregador().getNombre_agregador() + " GENERO TIMEOUT EXCEPCION INVOCAR EL METODO SIN SEGURIDAD");
+					}else{	
+						if (response != null) {
+							break;
+						}
+					}
+				}
+				return response;
+			} catch (Exception e) {
+				//logger.error(getAgregador().getNombre_agregador() + " GENERO ERROR EL CONSULTAR EL TIEMPO AL INVOCAR EL METODO SIN SEGURIDAD");
+				//guardarRespuesta(operation, "", "Error " , "GENERO ERROR EL CONSULTAR EL TIEMPO AL INVOCAR EL METODO SIN SEGURIDAD");
+				return xmlError(getAgregador().getNombre_agregador() + " GENERO TIMEOUT EXCEPCION INVOCAR EL METODO SIN SEGURIDAD");
+			}			
 		}
 		catch (Exception e)
 		{
-			logger.error("Problemas al invocar el metodo Sin seguridad", e);
-			throw new WSDLException(e);
+			//logger.error(getAgregador().getNombre_agregador() + " ERORO AL INVOCAR EL METODO SIN SEGURIDAD", e);
+			return xmlError(getAgregador().getNombre_agregador() + " ERORO AL INVOCAR EL METODO SIN SEGURIDAD");
 		}
 	}
 	
@@ -617,7 +908,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 				} 
 		};
 
-		logger.info("Generando la salida con seguridad");
+		logger.debug("Generando la salida con seguridad");
 		
 		SSLContext sc = SSLContext.getInstance("SSL");
 		sc.init(null, trustAllCerts, new SecureRandom());
@@ -643,7 +934,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 * @throws Exception 
 	 * */
 	private Document talk(Metodos metodo) {
-		Document doc = null;
+		SOAPMessage response = null;
 		try {
 			MessageFactory messageFactory = MessageFactory.newInstance();
 			SOAPMessage msg = messageFactory.createMessage(
@@ -652,18 +943,25 @@ public class ConsultaAgregadorPorHilo extends Thread {
 
 			// Trust to certificates
 			doTrustToCertificates();
-
-			// SOAPMessage rp = conn.call(msg, urlval);
-			SOAPMessage rp = sendMessage(msg, metodo.getEndPoint());
-
-			return toDocument(rp);
+			
+			try 
+			{
+				// SOAPMessage rp = conn.call(msg, urlval);
+				response = sendMessage(msg, metodo.getEndPoint());
+		    } 
+			catch (Exception e) 
+			{
+				//logger.error(getAgregador().getNombre_agregador() + " ERROR AL INVOCAR EL METODO SIN SEGURIDAD");
+		        //guardarRespuesta(metodo, "", "Error " , "SERROR AL INVOCAR EL METODO SIN SEGURIDAD");
+				if(response != null)
+					logger.debug(toDocument(response));
+		        return xmlError(getAgregador().getNombre_agregador() + " ERROR AL INVOCAR EL METODO CON SEGURIDAD");
+			}
 		} 
 		catch (Exception e) 
 		{
-			logger.error("ERROR AL INVOCAR EL METODO CON SEGURIDAD");
-			guardarRespuesta(metodo, getStringFromDocument(doc), "Error");
+			return xmlError(getAgregador().getNombre_agregador() + " GENERO ERROR AL INVOCAR EL METODO CON SEGURIDAD");
 		}
-		return doc;
 	}
 	
 	/**
@@ -709,8 +1007,8 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	    }
 	    catch(TransformerException ex)
 	    {
-	       ex.printStackTrace();
-	       return null;
+	    	logger.error( getAgregador().getNombre_agregador() + " Error al querer pasar el Document a cadena de texto");
+	       return "";
 	    }
 	} 
 
@@ -724,24 +1022,73 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 * @param endPoint
 	 *            - {@link String}
 	 * @return {@link SOAPMessage}
-	 * @throws MalformedURLException
 	 * @throws SOAPException 
 	 * @throws UnsupportedOperationException 
+	 * @throws IOException 
+	 * @throws TransformerException 
+	 * @throws TransformerConfigurationException 
 	 * */
-	static private SOAPMessage sendMessage(SOAPMessage message, String endPoint) 
-			throws MalformedURLException, UnsupportedOperationException, SOAPException
+	private SOAPMessage sendMessage(SOAPMessage message, String endPoint) 
+			throws UnsupportedOperationException, SOAPException, TransformerConfigurationException, TransformerException, IOException
 	{
-		SOAPMessage result = null;
+		SOAPMessage response = null;
 		if (endPoint != null && message != null) 
 		{
+			
 			URL url = new URL(endPoint);
 			SOAPConnectionFactory scf = SOAPConnectionFactory.newInstance();
 			SOAPConnection connection = null;
+			
+			try {
+				connection = scf.createConnection(); // point-to-point connection
+			} finally {
+				if (connection != null) 
+				{
+					try 
+					{
+						connection.close();
+					} 
+					catch (SOAPException soape) 
+					{
+						logger.error("Can't close SOAPConnection:" + soape , soape);
+						return null;
+					}
+				}
+			}
+			
 			try 
 			{
-				connection = scf.createConnection(); // point-to-point connection
-				result = connection.call(message, url);
-			} 
+				response = connection.call(message, url);
+		    } 
+			catch (SOAPException e) 
+			{
+				if (connection != null) 
+				{
+					try 
+					{
+						connection.close();
+					} 
+					catch (SOAPException soape) 
+					{
+						logger.error("Can't close SOAPConnection:" + soape , soape);
+					}
+				}
+			}
+			
+			try{
+				long endTimeOut = System.currentTimeMillis() + timeOutMillisecond;
+				while(true){
+					if(System.currentTimeMillis() > endTimeOut){
+						logger.error(getAgregador().getNombre_agregador() + " SE GENERO TIMEOUT EXCEPCION INVOCAR EL METODO SIN SEGURIDAD");
+						throw new SOAPException("timeOutExcepction");
+					}else{	
+						if (response != null) {
+							break;
+						}
+					}
+				}
+				return response;
+			}
 			finally 
 			{
 				if (connection != null) 
@@ -757,7 +1104,7 @@ public class ConsultaAgregadorPorHilo extends Thread {
 				}
 			}
 		}
-		return result;
+		return response;
 	}
 	
 	/**

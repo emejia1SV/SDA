@@ -30,9 +30,6 @@ public class UsuarioSistema implements Serializable {
 	@Column(name = "USUARIO", nullable = false)
 	private String usuario;
 
-	@Column(name = "CONTRASENIA", nullable = false)
-	private String contrasenia;
-
 	@Column(name = "ESTADO", nullable = false)
 	private Integer estado;
 
@@ -67,21 +64,6 @@ public class UsuarioSistema implements Serializable {
 	 */
 	public void setUsuario(String usuario) {
 		this.usuario = usuario;
-	}
-
-	/**
-	 * @return the contrasenia
-	 */
-	public String getContrasenia() {
-		return contrasenia;
-	}
-
-	/**
-	 * @param contrasenia
-	 *            the contrasenia to set
-	 */
-	public void setContrasenia(String contrasenia) {
-		this.contrasenia = contrasenia;
 	}
 
 	/**
