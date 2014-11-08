@@ -48,9 +48,12 @@ public class LogDepuracion implements Serializable {
 	@Column(name = "DESCRIPCION_ESTADO")
 	private String descripcionEstado;
 
+	@Column(name = "ID_METODO")
+	private Integer idMetodo;
+	
 	@ManyToOne(fetch = FetchType.EAGER)
-	@JoinColumn(name = "ID_METODO")
-	private Metodos metodo;
+	@JoinColumn(name = "ID_RESPUESTA")
+	private Respuesta respuestaFK;
 
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "ID_USUARIO_SISTEMA")
@@ -132,21 +135,6 @@ public class LogDepuracion implements Serializable {
 	}
 
 	/**
-	 * @return the metodo
-	 */
-	public Metodos getMetodo() {
-		return metodo;
-	}
-
-	/**
-	 * @param metodo
-	 *            the metodo to set
-	 */
-	public void setMetodo(Metodos metodo) {
-		this.metodo = metodo;
-	}
-
-	/**
 	 * @return the usuarioSistema
 	 */
 	public UsuarioSistema getUsuarioSistema() {
@@ -212,5 +200,33 @@ public class LogDepuracion implements Serializable {
 	@Override
 	public String toString() {
 		return id.toString();
+	}
+
+	/**
+	 * @return the idMetodo
+	 */
+	public Integer getIdMetodo() {
+		return idMetodo;
+	}
+
+	/**
+	 * @param idMetodo the idMetodo to set
+	 */
+	public void setIdMetodo(Integer idMetodo) {
+		this.idMetodo = idMetodo;
+	}
+
+	/**
+	 * @return the respuestaFK
+	 */
+	public Respuesta getRespuestaFK() {
+		return respuestaFK;
+	}
+
+	/**
+	 * @param respuestaFK the respuestaFK to set
+	 */
+	public void setRespuestaFK(Respuesta respuestaFK) {
+		this.respuestaFK = respuestaFK;
 	}
 }

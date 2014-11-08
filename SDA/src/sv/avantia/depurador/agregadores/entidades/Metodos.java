@@ -64,8 +64,6 @@ public class Metodos implements Serializable {
 	@OneToMany(fetch = FetchType.EAGER, mappedBy = "metodo", cascade = { CascadeType.ALL })
 	private Set<Respuesta> respuestas;
 
-	@OneToMany(fetch = FetchType.LAZY, mappedBy = "metodo", cascade = { CascadeType.ALL })
-	private Set<LogDepuracion> depuraciones;
 
 	public Integer getId() {
 		return id;
@@ -131,14 +129,6 @@ public class Metodos implements Serializable {
 
 	public void setRespuestas(Set<Respuesta> respuestas) {
 		this.respuestas = respuestas;
-	}
-
-	public Set<LogDepuracion> getDepuraciones() {
-		return depuraciones;
-	}
-
-	public void setDepuraciones(Set<LogDepuracion> depuraciones) {
-		this.depuraciones = depuraciones;
 	}
 
 	public String getEndPoint() {

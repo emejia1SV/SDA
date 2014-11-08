@@ -7,10 +7,10 @@
     
     	<!-- Database connection properties - Driver, URL, user, password -->
     	<property name="hibernate.connection.driver_class">oracle.jdbc.driver.OracleDriver</property>
-        <property name="hibernate.connection.url">jdbc:oracle:thin:@172.16.194.131:3871:AGREGADOR</property>
-        <property name="hibernate.connection.username">BJ_MASIVAS</property>
-        <property name="hibernate.connection.password">B92Cg54bB3</property>
-        <property name="hibernate.default_schema">BJ_MASIVAS</property>
+        <property name="hibernate.connection.url">jdbc:oracle:thin:@192.168.0.100:1521:orcl</property>
+        <property name="hibernate.connection.username">avantia</property>
+        <property name="hibernate.connection.password">avantia</property>
+        <property name="hibernate.default_schema">avantia</property>
 
 		<!--
 		<property name="hibernate.connection.url">jdbc:oracle:thin:@172.16.194.131:3871:AGREGADOR</property>

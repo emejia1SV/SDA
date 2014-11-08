@@ -1,13 +1,10 @@
 package sv.avantia.depurador.agregadores.inicio;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
 
-import sv.avantia.depurador.agregadores.entidades.Agregadores;
-import sv.avantia.depurador.agregadores.entidades.Pais;
-import sv.avantia.depurador.agregadores.hilo.ConsultaAgregadorPorHilo;
+import sv.avantia.depurador.agregadores.hilo.GestionarParametrizacion;
 import sv.avantia.depurador.agregadores.jdbc.BdEjecucion;
 import sv.avantia.depurador.agregadores.utileria.Log4jInit;
 
@@ -27,7 +24,7 @@ public class Iniciar {
 	 * 
 	 * @author Edwin Mejia - Avantia Consultores
 	 * */
-	public static Logger logger = Logger.getLogger("avantiaLogger");
+	private static Logger logger = Logger.getLogger("avantiaLogger");
 	
 	/**
 	 * Instancia de las operaciones con la base de datos.
@@ -43,7 +40,6 @@ public class Iniciar {
 	 */
 	public static void main(String[] args) {
 		long init = System.currentTimeMillis();
-		List<String> moviles = new ArrayList<String>();
 		try 
 		{
 			logger.info("Iniciando la depuración Masiva...");
@@ -51,66 +47,24 @@ public class Iniciar {
 			//iniciar la instancia a las operaciones a la base de datos
 			setEjecucion(new BdEjecucion());
 			
-			logger.info("Obtener Parametrización");
-			// consultar la parametrización
-			for (Pais pais : obtenerParmetrizacion()) 
-			{
-				if(pais.getEstado()==1){
-					logger.info("obtener numeros");
-					// consultar los numeros
-					moviles = obtenerNumeros(pais.getCodigo());
-
-					if (moviles.size() > 0) 
-					{
-						for (Agregadores agregador : pais.getAgregadores()) 
-						{
-							if(agregador.getEstado()==1)
-							{
-								if(!agregador.getMetodos().isEmpty())
-								{
-									logger.info("Iniciar la ejecuion del Hilo por el agregador " + agregador.getNombre_agregador());
-									// abrir un hilo pr cada agregador parametrizados
-									ConsultaAgregadorPorHilo hilo = new ConsultaAgregadorPorHilo();
-									hilo.setMoviles(moviles);
-									hilo.setAgregador(agregador);
-									hilo.setTipoDepuracion("MASIVA");
-									hilo.setUsuarioSistema(getEjecucion().usuarioMaestro());
-									hilo.start();
-								}
-							}
-						}
-					}
-				}
-				
-			}			
+			//gestionar la logica de la depuracion
+			GestionarParametrizacion gestion = new GestionarParametrizacion();
+			gestion.depuracionBajaMasiva(obtenerNumeros(), "MASIVA", false);
 		} 
 		catch (Exception e) 
 		{
-			/*if(SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().isOpen())
-	        	SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().close();
-	        	
-	        if(!SessionFactoryUtil.getSessionAnnotationFactory().isClosed())
-	        	SessionFactoryUtil.getSessionAnnotationFactory().close();*/
-	        
 			logger.error("Error en el sistema de depuracion masiva automatico ", e);
 		}
 		finally
 		{
-			/*if(SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().isOpen())
-	        	SessionFactoryUtil.getSessionAnnotationFactory().getCurrentSession().close();
-	        	
-	        if(!SessionFactoryUtil.getSessionAnnotationFactory().isClosed())
-	        	SessionFactoryUtil.getSessionAnnotationFactory().close();*/
-	        
-			moviles = null;
 			setEjecucion(null);
-			logger.info("finalizo la depuración de los numeros en " + ((System.currentTimeMillis() - init)/1000)  + "Segundos");
+			logger.info("finalizo la depuración Masiva de los numeros en " + ((System.currentTimeMillis() - init)/1000)  + "Segundos");
 		}
 	}
 	
 	/**
 	 * Obtener el insumo de numeros que deberan ser procesados para su
-	 * depuracion
+	 * depuracion todos los que se encuentren en esa tabla
 	 * 
 	 * @author Edwin Mejia - Avantia Consultores
 	 * @return {@link List} numeros para depurar
@@ -119,24 +73,9 @@ public class Iniciar {
 	 *             consulta a la base de datos
 	 * */
 	@SuppressWarnings("unchecked")
-	public static List<String> obtenerNumeros(String codigo) throws Exception 
+	private static List<String> obtenerNumeros() throws Exception 
 	{
-		return (List<String>)(List<?>) getEjecucion().listData("select b.numero from CLIENTE_TEL b where b.numero like '"+ codigo +"%'");
-	}
-	
-	/**
-	 * Obtener insumo de parametrización para consultar a los agregadores
-	 * 
-	 * @author Edwin Mejia - Avantia Consultores
-	 * @return {@link List} paises con sus dependencias en la base de datos
-	 * @throws Exception
-	 *             podria generarse una exepcion en el momento de ejecutar la
-	 *             consulta a la base de datos
-	 * */
-	@SuppressWarnings("unchecked")
-	public static List<Pais> obtenerParmetrizacion() throws Exception 
-	{
-		return (List<Pais>)(List<?>) getEjecucion().listData("FROM SDA_PAISES WHERE STATUS = 1");
+		return (List<String>)(List<?>) getEjecucion().listData("select b.numero from CLIENTE_TEL b");
 	}
 
 	/**

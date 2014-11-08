@@ -44,6 +44,9 @@ public class Respuesta implements Serializable {
 	@JoinColumn(name = "ID_RESPUESTA")
 	private CatRespuestas catRespuesta;
 	
+	@OneToMany(fetch = FetchType.LAZY, mappedBy = "respuestaFK", cascade = { CascadeType.ALL })
+	private Set<LogDepuracion> depuraciones;
+	
 	@OneToMany(fetch = FetchType.EAGER, mappedBy = "respuesta", cascade = { CascadeType.ALL })
 	private Set<ResultadosRespuesta> resultadosRespuestas;
 
@@ -109,6 +112,14 @@ public class Respuesta implements Serializable {
 	 */
 	public CatRespuestas getCatRespuesta() {
 		return catRespuesta;
+	}
+	
+	public Set<LogDepuracion> getDepuraciones() {
+		return depuraciones;
+	}
+
+	public void setDepuraciones(Set<LogDepuracion> depuraciones) {
+		this.depuraciones = depuraciones;
 	}
 
 	/**
