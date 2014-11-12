@@ -19,6 +19,11 @@ public class ConsultarASMX extends Consultar {
 	//		cliente ASMX para las implementaciones con servicios web montados en windows 
 	//*********************************************************************************************************************************/
 
+	private HttpClient httpClient =null;
+	private HttpPost postRequest =null;
+	private HttpResponse response = null;
+	private StringEntity input = null;
+	private Document salidaError = null;
 	/**
 	 * Metodo para la invocacion de los servicios ASMX
 	 * 
@@ -26,13 +31,9 @@ public class ConsultarASMX extends Consultar {
 	 * @param operation un bjeto {@link Metodos}
 	 * @return {@link Document}
 	 * */
-	@SuppressWarnings({ "resource", "deprecation" })
+	@SuppressWarnings("deprecation")
 	public Document invoke(Metodos metodo, long timeOutMillisecond)  
 	{	
-		HttpClient httpClient =null;
-		HttpPost postRequest =null;
-		HttpResponse response = null;
-		StringEntity input = null;
 		try
 		{	
 			//generamos el cliente
@@ -55,31 +56,95 @@ public class ConsultarASMX extends Consultar {
 			//ingresamos el mensaje a la comunicacion.
 			postRequest.setEntity(input);
 			
-	        try {
-	        	//invocamos el metodo web del Servicio
-				response = httpClient.execute(postRequest);
-	        } catch (Exception e) {
-	        	logger.error(getAgregador().getNombre_agregador() + "" + ErroresSDA.ERROR_AL_LEER_LA_RESPUESTA_OBTENIDA_DEL_METODO_POR_ASMX.getDescripcion() + "" + e.getMessage(), e);
-	        	return xmlErrorSDA(ErroresSDA.ERROR_AL_LEER_LA_RESPUESTA_OBTENIDA_DEL_METODO_POR_ASMX);
-			}
-	        
-	        try{
-	        	//verificamos el tiempo para verificar algun timeup excepcion
-				long endTimeOut = System.currentTimeMillis() + timeOutMillisecond;
-				while(true){
-					if(System.currentTimeMillis() > endTimeOut){
-						logger.error(getAgregador().getNombre_agregador() + " SE GENERO TIMEOUT EXCEPCION INVOCAR EL METODO A TRAVES DE ASMX");
-						return xmlErrorSDA(ErroresSDA.ERROR_TIMEUP_EXCEPTION);
-					}else{	
-						if (response != null) {
-							break;
-						}
+	       /* Thread taskInvoke;
+			
+			Runnable run = new Runnable() {
+				public void run() {
+					try {
+			        	//invocamos el metodo web del Servicio
+						response = httpClient.execute(postRequest);
+			        } catch (Exception e) {
+			        	logger.error(getAgregador().getNombre_agregador() + "" + ErroresSDA.ERROR_AL_LEER_LA_RESPUESTA_OBTENIDA_DEL_METODO_POR_ASMX.getDescripcion() + "" + e.getMessage(), e);
+			        	salidaError = xmlErrorSDA(ErroresSDA.ERROR_AL_LEER_LA_RESPUESTA_OBTENIDA_DEL_METODO_POR_ASMX);
 					}
 				}
+
+			};
+
+			taskInvoke = new Thread(run, "ServicioWeb"+metodo.getMetodo());
+			taskInvoke.start();
+
+	        try{
+	        	long endTimeOut = System.currentTimeMillis() + timeOutMillisecond;
+	        	
+	        	while (true) 
+				{
+					if (response != null) 
+					{
+						break;
+					}
+					if (System.currentTimeMillis() > endTimeOut) 
+					{
+						logger.error(getAgregador().getNombre_agregador() + " SE GENERO TIMEOUT EXCEPCION INVOCAR EL METODO SIN SEGURIDAD");
+						salidaError = xmlErrorSDA(ErroresSDA.ERROR_TIMEUP_EXCEPTION);
+						taskInvoke.stop();
+						break;
+					}
+				}
+				if (taskInvoke.isAlive()) 
+				{
+					taskInvoke.stop();
+				}
 			} catch (Exception e) {
-				logger.error(getAgregador().getNombre_agregador() + " " + ErroresSDA.ERROR_EL_CONSULTAR_TIMEUP_EN_EL_METODO_A_TRAVES_DE_ASMX.getDescripcion() + " " + e.getMessage());
+				logger.error(getAgregador().getNombre_agregador() + " " + ErroresSDA.ERROR_AL_CONSULTAR_TIMEUP_EN_EL_METODO_SIN_SEGURIDAD.getDescripcion() + " " + e.getMessage(), e);
+				salidaError = xmlErrorSDA(ErroresSDA.ERROR_AL_CONSULTAR_TIMEUP_EN_EL_METODO_SIN_SEGURIDAD);
+			}*/	
+	        
+			Thread taskInvoke;
+			try {
+				Runnable run = new Runnable() {
+
+					public void run() {
+						try {
+							//invocamos el metodo web del Servicio
+							response = httpClient.execute(postRequest);
+						} catch (Exception e) {
+							logger.error(getAgregador().getNombre_agregador() + "" + ErroresSDA.ERROR_AL_LEER_LA_RESPUESTA_OBTENIDA_DEL_METODO_POR_ASMX.getDescripcion() + "" + e.getMessage(), e);
+				        	salidaError = xmlErrorSDA(ErroresSDA.ERROR_AL_LEER_LA_RESPUESTA_OBTENIDA_DEL_METODO_POR_ASMX);
+						}
+					}
+
+				};
+
+				taskInvoke = new Thread(run, "AInvocacionWebService");
+				taskInvoke.start();
+
+				int m_seconds = 1;
+				int contSeconds = 0;
+				while (true) {
+					Thread.sleep(m_seconds * 1000);
+					contSeconds += m_seconds;
+					if (response != null) {
+						break;
+					}
+					if (contSeconds >= timeOutMillisecond) {
+						taskInvoke.interrupt();
+						logger.error(getAgregador().getNombre_agregador() + " SE GENERO TIMEOUT EXCEPCION INVOCAR EL METODO ASMX");
+						salidaError = xmlErrorSDA(ErroresSDA.ERROR_TIMEUP_EXCEPTION);
+						break;
+					}
+				}
+				if (taskInvoke.isAlive()) {
+					taskInvoke.interrupt();
+				}
+				//return response;
+			} catch (Exception e) {
+				//call = null;
 				return xmlErrorSDA(ErroresSDA.ERROR_EL_CONSULTAR_TIMEUP_EN_EL_METODO_A_TRAVES_DE_ASMX);
 			}
+			
+	        if(salidaError != null)
+	        	return salidaError;
 			
 	        //lectura de la respuesta obtenida
 	        try {

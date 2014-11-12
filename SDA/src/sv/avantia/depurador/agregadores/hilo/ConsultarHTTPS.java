@@ -35,6 +35,13 @@ public class ConsultarHTTPS extends Consultar {
 	//		cliente SSL
 	//*********************************************************************************************************************************/
 
+	private SOAPMessage response = null;
+	private URL url;
+	private SOAPConnection connection = null;
+	private SOAPConnectionFactory scf = null;
+	private Document salidaError = null;
+	SOAPMessage message = null;
+	
 	/**
 	 * Metodo que nos carga un certificado digital
 	 * 
@@ -111,8 +118,8 @@ public class ConsultarHTTPS extends Consultar {
 			logger.error(getAgregador().getNombre_agregador() + " " + ErroresSDA.ERROR_AL_VERIFICAR_LOS_CERTIFICADOS_DE_SEGURIDAD.getDescripcion() + " " + e.getMessage(), e);
 			return xmlErrorSDA(ErroresSDA.ERROR_AL_VERIFICAR_LOS_CERTIFICADOS_DE_SEGURIDAD);
 		}
-		
-		return sendMessage(msg, metodo.getEndPoint(), timeOutMillisecond);		
+		message = msg;
+		return sendMessage(metodo.getEndPoint(), timeOutMillisecond);		
 	}
 	
 	/**
@@ -131,13 +138,8 @@ public class ConsultarHTTPS extends Consultar {
 	 * @throws TransformerException 
 	 * @throws TransformerConfigurationException 
 	 * */
-	private Document sendMessage(SOAPMessage message, String endPoint, long timeOutMillisecond) 
+	private Document sendMessage(String endPoint, long timeOutMillisecond) 
 	{
-		SOAPMessage response = null;
-		URL url;
-		SOAPConnection connection = null;
-		SOAPConnectionFactory scf = null;
-		
 		if (endPoint != null && message != null) 
 		{
 			try {
@@ -176,48 +178,52 @@ public class ConsultarHTTPS extends Consultar {
 				return xmlErrorSDA(ErroresSDA.ERROR_CREANDO_CONEXION_HTTPS);
 			}
 			
-			
-			
-			try 
-			{
-				response = connection.call(message, url);
-		    } 
-			catch (SOAPException e) 
-			{
-				if (connection != null) 
-				{
-					try 
-					{
-						connection.close();
-					} 
-					catch (SOAPException soape) 
-					{
-						logger.warn(getAgregador().getNombre_agregador() + " Verificar porque no se pudo dar CLOSE a la conexion httpClient " + soape.getMessage());
-					}
-				}
-				logger.error(getAgregador().getNombre_agregador() + " " + ErroresSDA.ERROR_AL_INVOCAR_EL_METODO_CON_SEGURIDAD.getDescripcion() + " " + e.getMessage() ,e);
-				return xmlErrorSDA(ErroresSDA.ERROR_AL_INVOCAR_EL_METODO_CON_SEGURIDAD);
-				
-			}
-			
-			try{
-				long endTimeOut = System.currentTimeMillis() + timeOutMillisecond;
-				while(true){
-					if(System.currentTimeMillis() > endTimeOut){
-						logger.error(getAgregador().getNombre_agregador() + " SE GENERO TIMEOUT EXCEPCION INVOCAR EL METODO CON SEGURIDAD");
-						return xmlErrorSDA(ErroresSDA.ERROR_TIMEUP_EXCEPTION);
-					}else{	
-						if (response != null) {
-							break;
+			Thread taskInvoke;
+			try {
+				Runnable run = new Runnable() {
+
+					public void run() {
+						try {
+							//invocamos el metodo web del Servicio
+							response = connection.call(message, url);
+						} catch (Exception e) {
+							logger.error(getAgregador().getNombre_agregador() + " " + ErroresSDA.ERROR_AL_INVOCAR_EL_METODO_CON_SEGURIDAD.getDescripcion() + " " + e.getMessage() ,e);
+							salidaError = xmlErrorSDA(ErroresSDA.ERROR_AL_INVOCAR_EL_METODO_CON_SEGURIDAD);
 						}
 					}
+
+				};
+
+				taskInvoke = new Thread(run, "AInvocacionWebService");
+				taskInvoke.start();
+
+				int m_seconds = 1;
+				int contSeconds = 0;
+				while (true) {
+					Thread.sleep(m_seconds * 1000);
+					contSeconds += m_seconds;
+					if (response != null) {
+						break;
+					}
+					if (contSeconds >= timeOutMillisecond) {
+						taskInvoke.interrupt();
+						logger.error(getAgregador().getNombre_agregador() + " SE GENERO TIMEOUT EXCEPCION INVOCAR EL METODO CON SEGURIDAD");
+						salidaError = xmlErrorSDA(ErroresSDA.ERROR_TIMEUP_EXCEPTION);
+						break;
+					}
 				}
-				return toDocument(response);
-			}
-			catch(Exception e)
-			{
-				logger.error(getAgregador().getNombre_agregador() + " " + ErroresSDA.ERROR_AL_CONSULTAR_TIMEUP_EN_EL_METODO_CON_SEGURIDAD.getDescripcion() + " " + e.getMessage(), e);
-				return xmlErrorSDA(ErroresSDA.ERROR_AL_CONSULTAR_TIMEUP_EN_EL_METODO_CON_SEGURIDAD);
+				if (taskInvoke.isAlive()) {
+					taskInvoke.interrupt();
+				}
+
+				if(salidaError!=null)
+					return salidaError;
+				else
+					return toDocument(response);
+				
+			} catch (Exception e) {
+				//call = null;
+				return xmlErrorSDA(ErroresSDA.ERROR_AL_CONSULTAR_TIMEUP_EN_EL_METODO_SIN_SEGURIDAD);
 			}
 			finally 
 			{
@@ -233,6 +239,87 @@ public class ConsultarHTTPS extends Consultar {
 					}
 				}
 			}
+			
+	       /* Thread taskInvoke;
+			
+			Runnable run = new Runnable() {
+				public void run() {
+					try 
+					{
+						response = connection.call(message, url);
+				    } 
+					catch (SOAPException e) 
+					{
+						if (connection != null) 
+						{
+							try 
+							{
+								connection.close();
+							} 
+							catch (SOAPException soape) 
+							{
+								logger.warn(getAgregador().getNombre_agregador() + " Verificar porque no se pudo dar CLOSE a la conexion httpClient " + soape.getMessage());
+							}
+						}
+						logger.error(getAgregador().getNombre_agregador() + " " + ErroresSDA.ERROR_AL_INVOCAR_EL_METODO_CON_SEGURIDAD.getDescripcion() + " " + e.getMessage() ,e);
+						salidaError = xmlErrorSDA(ErroresSDA.ERROR_AL_INVOCAR_EL_METODO_CON_SEGURIDAD);
+						
+					}
+				}
+
+			};
+
+			taskInvoke = new Thread(run, "ServicioWebHttps");
+			taskInvoke.start();
+
+	        try
+	        {
+	        	long endTimeOut = System.currentTimeMillis() + timeOutMillisecond;
+	        	
+	        	while (true) 
+				{
+					if (response != null) 
+					{
+						break;
+					}
+					if (System.currentTimeMillis() > endTimeOut) 
+					{
+						logger.error(getAgregador().getNombre_agregador() + " SE GENERO TIMEOUT EXCEPCION INVOCAR EL METODO SIN SEGURIDAD");
+						salidaError = xmlErrorSDA(ErroresSDA.ERROR_TIMEUP_EXCEPTION);
+						taskInvoke.stop();
+						break;
+					}
+				}
+				if (taskInvoke.isAlive()) 
+				{
+					taskInvoke.stop();
+				}
+				
+				if(salidaError!=null)
+					return salidaError;
+				else
+					return toDocument(response);
+				
+			} 
+	        catch (Exception e) 
+	        {
+				logger.error(getAgregador().getNombre_agregador() + " " + ErroresSDA.ERROR_AL_CONSULTAR_TIMEUP_EN_EL_METODO_SIN_SEGURIDAD.getDescripcion() + " " + e.getMessage(), e);
+				return xmlErrorSDA(ErroresSDA.ERROR_AL_CONSULTAR_TIMEUP_EN_EL_METODO_SIN_SEGURIDAD);
+			}
+			finally 
+			{
+				if (connection != null) 
+				{
+					try 
+					{
+						connection.close();
+					} 
+					catch (SOAPException e) 
+					{
+						logger.warn(getAgregador().getNombre_agregador() + " Verificar porque no se pudo dar CLOSE a la conexion httpClient " + e.getMessage());
+					}
+				}
+			}*/
 		}
 		return xmlErrorSDA(ErroresSDA.ERROR_NULLPOINTEREXCEPTION);
 	}

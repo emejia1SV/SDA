@@ -1,11 +1,18 @@
 package sv.avantia.depurador.agregadores.hilo;
 
-import java.io.Serializable;
+import java.io.StringWriter;
+import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -17,10 +24,11 @@ import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-
 import sv.avantia.depurador.agregadores.entidades.Agregadores;
 import sv.avantia.depurador.agregadores.entidades.LogDepuracion;
+import sv.avantia.depurador.agregadores.entidades.Metodos;
 import sv.avantia.depurador.agregadores.entidades.Pais;
+import sv.avantia.depurador.agregadores.entidades.ParametrosSistema;
 import sv.avantia.depurador.agregadores.jdbc.BdEjecucion;
 import sv.avantia.depurador.agregadores.utileria.ErroresSDA;
 import sv.avantia.depurador.agregadores.utileria.Log4jInit;
@@ -50,20 +58,33 @@ public class GestionarParametrizacion {
 	private BdEjecucion ejecucion = null;
 
 	/**
+	 * Instancia de un {@link HashMap} para mantener en memoria los parametros
+	 * con los que me serviran de insumo para llenar los parametros requeridos
+	 * por los agregadores
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * */
+	private HashMap<String, String> parametrosData = null;
+	
+	/**
 	 * Metodo que inicializara todo el flujo del JAR ejecutable
 	 * 
 	 * @author Edwin Mejia - Avantia Consultores
 	 * @param args
 	 */
-	@SuppressWarnings("deprecation")
 	public String depuracionBajaMasiva(List<String> moviles, String tipoDepuracion, boolean obtenerRespuesta) {
 		long init = System.currentTimeMillis();
+		long tiempoEsperaProceso = System.currentTimeMillis() + 40000; //tiempo maximo para procesar todo.
 		List<String> numerosPorPais = new ArrayList<String>();
-		String out = "";
+		List<ConsultaAgregadorPorHilo> hilosParaEjecutar = new ArrayList<ConsultaAgregadorPorHilo>();
+		
 		try 
 		{			
 			//iniciar la instancia a las operaciones a la base de datos
 			setEjecucion(new BdEjecucion());
+			
+			//llenar los parametros iniciales
+			llenarParametros();
 			
 			logger.info("Obtener Parametrización");
 			// consultar la parametrización
@@ -87,7 +108,7 @@ public class GestionarParametrizacion {
 						}
 						
 						//si no hay numeros en el pais recorrido no se debe enviar ningun hilo
-						if(numerosPorPais.size()>0)
+						if (numerosPorPais.size() > 0)
 						{
 							//recorremos cada aregador para levantar un hilo por agregador por pais
 							for (Agregadores agregador : pais.getAgregadores()) 
@@ -97,110 +118,81 @@ public class GestionarParametrizacion {
 								{
 									//verificammos que por lo menos un agregador este parametrizado con metodos
 									if(!agregador.getMetodos().isEmpty())
-									{									
-										// abrir un hilo pr cada agregador parametrizados
-										ConsultaAgregadorPorHilo hilo = new ConsultaAgregadorPorHilo(agregador.getNombre_agregador());
+									{	
+								        // abrir un hilo pr cada agregador parametrizados
+										ConsultaAgregadorPorHilo hilo = new ConsultaAgregadorPorHilo();
 										hilo.setMoviles(numerosPorPais);
 										hilo.setAgregador(agregador);
 										hilo.setTipoDepuracion(tipoDepuracion);
 										hilo.setUsuarioSistema(getEjecucion().usuarioMaestro());
-										hilo.start();
+										hilo.setParametrosData(getParametrosData());
+										
+										hilosParaEjecutar.add(hilo);
 									}
 								}
 							}
 						}
 					}
-				}
-				
+				}				
 			}	
-			
-			//consultar las respuestas
-			for (Pais pais : obtenerParmetrizacion()) 
-			{
-				//validamos que el estado de pais a verificar este activo
-				if(pais.getEstado()==1)
+
+			//Get ExecutorService from Executors utility class, thread pool size is 10
+	        ExecutorService executor = Executors.newFixedThreadPool(hilosParaEjecutar.size());
+	        
+	        for (ConsultaAgregadorPorHilo consultaAgregadorPorHilo : hilosParaEjecutar) {
+	        	final Future<HashMap<String, List<LogDepuracion>>> future = executor.submit(consultaAgregadorPorHilo);
+	        	Thread taskInvoke;
+				Runnable run = new Runnable() 
 				{
-					//recorremos cada aregador para conocer la respuesta de cada hilo iniciado
-					for (Agregadores agregador : pais.getAgregadores()) 
+					public void run() 
 					{
-						//verificamos el estado del agregador que este activo para ser tomado en cuenta en la depuración
-						if(agregador.getEstado()==1)
+						try 
 						{
-							//verificammos que por lo menos un agregador este parametrizado con metodos
-							if(!agregador.getMetodos().isEmpty())
-							{
-								//conocer respuesta de cada hilo por cada agregador iniciado
-								ThreadGroup currentGroup = ConsultaAgregadorPorHilo.currentThread().getThreadGroup();
-								
-								//verificamos la cantidad de hilos activos
-								int nHilos = currentGroup.activeCount();
-								
-								//iniciamos un arreglo para los hilos activos
-								Thread[] hilosActivos = new Thread[nHilos];
-								currentGroup.enumerate(hilosActivos);
-								
-								//recorremos los hilos activos para obtener la respuesta
-								for (int i = 0; i < nHilos; i++)
-								{
-									//verificamos el nombre del hilo para saber si es un hilo que deseamos conocer la respuesta
-									if(hilosActivos[i].getName().equals(agregador.getId().toString()))
-									{
-										//aparte del nombre verificamos el tipo del hilo
-										if (hilosActivos[i] instanceof ConsultaAgregadorPorHilo) 
-										{
-											ConsultaAgregadorPorHilo propio = (ConsultaAgregadorPorHilo) hilosActivos[i];
-											
-											// consultamos si sigue vivo y
-											// por esta simple razon siempre
-											// debe leerse la respuesta para
-											// que por lo menos podamos
-											// detener el hilo
-											if (propio.isAlive()) 
-											{
-												// verificamos si externamente quieren conocer las respuestas sino
-												// terminamos el flujo lo antes posible y todo que solo quede
-												// constancia en la base de datos
-												if(obtenerRespuesta)
-												{
-													//verificamos con bandera si ya termino de ejecutarse normalmente el hilo que estamos consultando
-													if(propio.isSePuedeObtenerRespuesta())
-													{
-														guardarRespuestaEnContenedor(propio.getRespuestas(), propio.getName());
-														propio.stop();
-														logger.debug("======== SE MANDO A DETENER EL HILO PARA EL AGREGADOR " + propio.getName() + " ========");
-													}
-													else
-													{
-														//como no esta lista aun la respuesta lo esperaremos 3 segundos mas
-														Thread.sleep(3000);
-														//verificamos con bandera si ya termino de ejecutarse normalmente el hilo que estamos consultando
-														if(propio.isSePuedeObtenerRespuesta())
-														{
-															guardarRespuestaEnContenedor(propio.getRespuestas(), propio.getName());
-															propio.stop();
-															logger.debug("======== SE MANDO A DETENER EL HILO PARA EL AGREGADOR " + propio.getName() + " ========");
-														}
-													}
-												}
-												else
-												{
-													propio.stop();
-													logger.debug("======== SE MANDO A DETENER EL HILO PARA EL AGREGADOR " + propio.getName() + " ========");
-												}
-											}
-										}
-									}
-								}
-								generar();
-							}
+							guardarRespuestaEnContenedor(future.get());
+						} 
+						catch (Exception ex) 
+						{
+							logger.error("Error al obtener el listado de respuestas", ex);
 						}
 					}
-				}
+				};
+				
+				taskInvoke = new Thread(run);
+				taskInvoke.start();
+	        	//guardarRespuestaEnContenedor(future.get());
 			}
+	        
+	        
+			logger.info("hilos que seran leidos " + hilosParaEjecutar.size());
+			System.out.println("comenzamos a esperar " + getData().entrySet().size() + "  >  " + hilosParaEjecutar.size());
+			long initLocal = System.currentTimeMillis();
+			//nos quedamos esperando todas las respuestas
+			while(true)
+			{
+				//hasta que las tengamos todas las respuestas dejamos de esperar
+				if(getData().entrySet().size()>=hilosParaEjecutar.size())
+					break;
+				
+				// lo mucho que nos quedaremos esperando - Caso extremo
+				if(System.currentTimeMillis() > tiempoEsperaProceso){
+					System.out.println(getData().entrySet().size() + "  >  " + hilosParaEjecutar.size());
+					break;
+				}
+					
+			}
+			System.out.println("Esperamos " + (System.currentTimeMillis() - initLocal));
+			
+			//shut down the executor service
+	        executor.shutdown();
+	        
+			//generamos la respuesta como la tengamos
+			return generar();
 		} 
 		catch (Exception e) 
 		{
 			logger.error("Error en el sistema de depuracion masiva automatico ", e);
+			e.printStackTrace();
+			return xmlError(ErroresSDA.ERROR_GENERICO);
 		}
 		finally
 		{
@@ -208,232 +200,24 @@ public class GestionarParametrizacion {
 			setEjecucion(null);
 			logger.info("finalizo la depuración de los numeros en " + ((System.currentTimeMillis() - init)/1000)  + "Segundos");
 		}
-		return out;
-	}
+	}	
 	
-	public String altaListaNegra(List<String> moviles, String tipoDepuracion){
-		return "<respuesta>																												"
-				+"	<SMT>																													"
-				+"		<depuracion>                                                                                                        "
-				+"			<listaNegra>                                                                                                    "
-				+"				<numero>50377494676</numero>                                                                                "
-				+"				<codigoError>2</codigoError>                                                                                "
-				+"				<descripcionEstado>SMT GENERO TIMEOUT EXCEPCION INVOCAR EL METODO SIN SEGURIDAD</descripcionEstado>         "
-				+"			</listaNegra>                                                                                                   "
-				+"		</depuracion>                                                                                                       "
-				+"		<depuracion>                                                                                                        "
-				+"			<listaNegra>                                                                                                    "
-				+"				<numero>50377504963</numero>                                                                                "
-				+"				<codigoError>0</codigoError>                                                                                "
-				+"				<descripcionEstado>EXITO</descripcionEstado>                                                                "
-				+"			</listaNegra>                                                                                                   "
-				+"		</depuracion>                                                                                                       "
-				+"		<depuracion>                                                                                                        "
-				+"			<listaNegra>                                                                                                    "
-				+"				<numero>50379748568</numero>                                                                                "
-				+"				<codigoError>1</codigoError>                                                                                "
-				+"				<descripcionEstado>FALLO</descripcionEstado>                                                                "
-				+"			</listaNegra>                                                                                                   "
-				+"		</depuracion>                                                                                                       "
-				+"	</SMT>                                                                                                                  "
-				+"	<GRUPO_M>                                                                                                               "
-				+"		<depuracion>                                                                                                        "
-				+"			<listaNegra>                                                                                                    "
-				+"				<numero>50377494676</numero>                                                                                "
-				+"				<codigoError>2</codigoError>                                                                                "
-				+"				<descripcionEstado>GRUPO_M GENERO TIMEOUT EXCEPCION INVOCAR EL METODO SIN SEGURIDAD</descripcionEstado>     "
-				+"			</listaNegra>                                                                                                   "
-				+"			<consulta>                                                                                                      "
-				+"				<numero>50377494676</numero>                                                                                "
-				+"				<codigoError>0</codigoError>                                                                                "
-				+"				<descripcionEstado>SIN SERVICIOS</descripcionEstado>                                                        "
-				+"			</consulta>                                                                                                     "
-				+"			<baja>                                                                                                          "
-				+"				<numero>50377494676</numero>                                                                                "
-				+"				<servicio/>                                                                                                 "
-				+"				<codigoError>0</codigoError>                                                                                "
-				+"				<descripcionEstado/>                                                                                        "
-				+"			</baja>                                                                                                         "
-				+"		</depuracion>                                                                                                       "
-				+"		<depuracion>                                                                                                        "
-				+"			<listaNegra>                                                                                                    "
-				+"				<numero>50377504963</numero>                                                                                "
-				+"				<codigoError>3</codigoError>                                                                                "
-				+"				<descripcionEstado>GRUPO_M GENERO TIMEOUT EXCEPCION INVOCAR EL METODO SIN SEGURIDAD</descripcionEstado>     "
-				+"			</listaNegra>                                                                                                   "
-				+"			<consulta>                                                                                                      "
-				+"				<numero>50377504963</numero>                                                                                "
-				+"				<codigoError>0</codigoError>                                                                                "
-				+"				<descripcionEstado>SIN SERVICIOS</descripcionEstado>                                                        "
-				+"			</consulta>                                                                                                     "
-				+"			<baja>                                                                                                          "
-				+"				<numero>50377504963</numero>                                                                                "
-				+"				<servicio/>                                                                                                 "
-				+"				<codigoError>0</codigoError>                                                                                "
-				+"				<descripcionEstado/>                                                                                        "
-				+"			</baja>                                                                                                         "
-				+"		</depuracion>                                                                                                       "
-				+"		<depuracion>                                                                                                        "
-				+"			<listaNegra>                                                                                                    "
-				+"				<numero>50379748568</numero>                                                                                "
-				+"				<codigoError>0</codigoError>                                                                                "
-				+"				<descripcionEstado>EXITO</descripcionEstado>                                                                "
-				+"			</listaNegra>                                                                                                   "
-				+"			<consulta>                                                                                                      "
-				+"				<numero>50379748568</numero>                                                                                "
-				+"				<codigoError>0</codigoError>                                                                                "
-				+"				<descripcionEstado>3 SERVICIOS</descripcionEstado>                                                          "
-				+"			</consulta>                                                                                                     "
-				+"			<baja>                                                                                                          "
-				+"				<numero>50379748568</numero>                                                                                "
-				+"				<servicio>Servicio1</servicio>                                                                              "
-				+"				<codigoError>0</codigoError>                                                                                "
-				+"				<descripcionEstado>EXITO</descripcionEstado>                                                                "
-				+"			</baja>                                                                                                         "
-				+"			<baja>                                                                                                          "
-				+"				<numero>50379748568</numero>                                                                                "
-				+"				<servicio>Servicio2</servicio>                                                                              "
-				+"				<codigoError>1</codigoError>                                                                                "
-				+"				<descripcionEstado>FALLO</descripcionEstado>                                                                "
-				+"			</baja>                                                                                                         "
-				+"			<baja>                                                                                                          "
-				+"				<numero>50379748568</numero>                                                                                "
-				+"				<servicio>Servicio3</servicio>                                                                              "
-				+"				<codigoError>2</codigoError>                                                                                "
-				+"				<descripcionEstado>GRUPO_M GENERO TIMEOUT EXCEPCION INVOCAR EL METODO SIN SEGURIDAD</descripcionEstado>     "
-				+"			</baja>                                                                                                         "
-				+"		</depuracion>                                                                                                       "
-				+"	</GRUPO_M>	                                                                                                            "
-				+"</respuesta>                                                                                                              ";
-	}
-	
-	
-	/**
-	 * Metodo que esta realizando la estructura del XML de respuesta y al final devolvera ese XML en una cadena de texto
-	 * 
-	 * @author Edwin Mejia - Avantia Consultores
-	 * 
-	 * */
-	@SuppressWarnings("unused")
-	private String generarRespuesta()
+	private void guardarRespuestaEnContenedor(HashMap<String, List<LogDepuracion>> respuestasObtenidas)
 	{
-		
-		try {
-			generar();
-		} catch (ParserConfigurationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (TransformerException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		return   "<respuesta>																												"
-				+"	<SMT>																													"
-				+"		<depuracion>                                                                                                        "
-				+"			<listaNegra>                                                                                                    "
-				+"				<numero>50377494676</numero>                                                                                "
-				+"				<codigoError>2</codigoError>                                                                                "
-				+"				<descripcionEstado>SMT GENERO TIMEOUT EXCEPCION INVOCAR EL METODO SIN SEGURIDAD</descripcionEstado>         "
-				+"			</listaNegra>                                                                                                   "
-				+"		</depuracion>                                                                                                       "
-				+"		<depuracion>                                                                                                        "
-				+"			<listaNegra>                                                                                                    "
-				+"				<numero>50377504963</numero>                                                                                "
-				+"				<codigoError>0</codigoError>                                                                                "
-				+"				<descripcionEstado>EXITO</descripcionEstado>                                                                "
-				+"			</listaNegra>                                                                                                   "
-				+"		</depuracion>                                                                                                       "
-				+"		<depuracion>                                                                                                        "
-				+"			<listaNegra>                                                                                                    "
-				+"				<numero>50379748568</numero>                                                                                "
-				+"				<codigoError>1</codigoError>                                                                                "
-				+"				<descripcionEstado>FALLO</descripcionEstado>                                                                "
-				+"			</listaNegra>                                                                                                   "
-				+"		</depuracion>                                                                                                       "
-				+"	</SMT>                                                                                                                  "
-				+"	<GRUPO_M>                                                                                                               "
-				+"		<depuracion>                                                                                                        "
-				+"			<listaNegra>                                                                                                    "
-				+"				<numero>50377494676</numero>                                                                                "
-				+"				<codigoError>2</codigoError>                                                                                "
-				+"				<descripcionEstado>GRUPO_M GENERO TIMEOUT EXCEPCION INVOCAR EL METODO SIN SEGURIDAD</descripcionEstado>     "
-				+"			</listaNegra>                                                                                                   "
-				+"			<consulta>                                                                                                      "
-				+"				<numero>50377494676</numero>                                                                                "
-				+"				<codigoError>0</codigoError>                                                                                "
-				+"				<descripcionEstado>SIN SERVICIOS</descripcionEstado>                                                        "
-				+"			</consulta>                                                                                                     "
-				+"			<baja>                                                                                                          "
-				+"				<numero>50377494676</numero>                                                                                "
-				+"				<servicio/>                                                                                                 "
-				+"				<codigoError>0</codigoError>                                                                                "
-				+"				<descripcionEstado/>                                                                                        "
-				+"			</baja>                                                                                                         "
-				+"		</depuracion>                                                                                                       "
-				+"		<depuracion>                                                                                                        "
-				+"			<listaNegra>                                                                                                    "
-				+"				<numero>50377504963</numero>                                                                                "
-				+"				<codigoError>3</codigoError>                                                                                "
-				+"				<descripcionEstado>GRUPO_M GENERO TIMEOUT EXCEPCION INVOCAR EL METODO SIN SEGURIDAD</descripcionEstado>     "
-				+"			</listaNegra>                                                                                                   "
-				+"			<consulta>                                                                                                      "
-				+"				<numero>50377504963</numero>                                                                                "
-				+"				<codigoError>0</codigoError>                                                                                "
-				+"				<descripcionEstado>SIN SERVICIOS</descripcionEstado>                                                        "
-				+"			</consulta>                                                                                                     "
-				+"			<baja>                                                                                                          "
-				+"				<numero>50377504963</numero>                                                                                "
-				+"				<servicio/>                                                                                                 "
-				+"				<codigoError>0</codigoError>                                                                                "
-				+"				<descripcionEstado/>                                                                                        "
-				+"			</baja>                                                                                                         "
-				+"		</depuracion>                                                                                                       "
-				+"		<depuracion>                                                                                                        "
-				+"			<listaNegra>                                                                                                    "
-				+"				<numero>50379748568</numero>                                                                                "
-				+"				<codigoError>0</codigoError>                                                                                "
-				+"				<descripcionEstado>EXITO</descripcionEstado>                                                                "
-				+"			</listaNegra>                                                                                                   "
-				+"			<consulta>                                                                                                      "
-				+"				<numero>50379748568</numero>                                                                                "
-				+"				<codigoError>0</codigoError>                                                                                "
-				+"				<descripcionEstado>3 SERVICIOS</descripcionEstado>                                                          "
-				+"			</consulta>                                                                                                     "
-				+"			<baja>                                                                                                          "
-				+"				<numero>50379748568</numero>                                                                                "
-				+"				<servicio>Servicio1</servicio>                                                                              "
-				+"				<codigoError>0</codigoError>                                                                                "
-				+"				<descripcionEstado>EXITO</descripcionEstado>                                                                "
-				+"			</baja>                                                                                                         "
-				+"			<baja>                                                                                                          "
-				+"				<numero>50379748568</numero>                                                                                "
-				+"				<servicio>Servicio2</servicio>                                                                              "
-				+"				<codigoError>1</codigoError>                                                                                "
-				+"				<descripcionEstado>FALLO</descripcionEstado>                                                                "
-				+"			</baja>                                                                                                         "
-				+"			<baja>                                                                                                          "
-				+"				<numero>50379748568</numero>                                                                                "
-				+"				<servicio>Servicio3</servicio>                                                                              "
-				+"				<codigoError>2</codigoError>                                                                                "
-				+"				<descripcionEstado>GRUPO_M GENERO TIMEOUT EXCEPCION INVOCAR EL METODO SIN SEGURIDAD</descripcionEstado>     "
-				+"			</baja>                                                                                                         "
-				+"		</depuracion>                                                                                                       "
-				+"	</GRUPO_M>	                                                                                                            "
-				+"</respuesta>                                                                                                              ";
+		if(respuestasObtenidas.size()>0)
+			getData().putAll(respuestasObtenidas);			
 	}
 	
-	private contenedorRespuestas todasLasRespuestas = new contenedorRespuestas();
-	private void guardarRespuestaEnContenedor(List<LogDepuracion> respuestasObtenidas, String agregador)
+	private HashMap<String, List<LogDepuracion>> data = new HashMap<String, List<LogDepuracion>>();
+	
+	private HashMap<String, List<LogDepuracion>> getData() 
 	{
-		todasLasRespuestas.getData().put(agregador, respuestasObtenidas);
+		return this.data;
 	}
 	
-	
-	private void generar() throws ParserConfigurationException, TransformerException 
+	private String generar() throws ParserConfigurationException, TransformerException 
 	{
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-
 		DocumentBuilder builder = factory.newDocumentBuilder();
 		Document document = builder.newDocument();
 		
@@ -441,11 +225,12 @@ public class GestionarParametrizacion {
 		Element root = (Element) document.createElement("respuesta");
 		document.appendChild(root);
 		
-		Iterator<Entry<String, List<LogDepuracion>>> it = todasLasRespuestas.getData().entrySet().iterator();
+		Iterator<Entry<String, List<LogDepuracion>>> it = getData().entrySet().iterator();
 		while(it.hasNext())
 		{
 			Entry<String, List<LogDepuracion>> entry = it.next();
-			Element agregador = (Element) document.createElement(entry.getKey());
+			String agregadorNombre = entry.getKey().replaceAll(" ", "_").replaceAll("\\(", "").replaceAll("\\)", "");
+			Element agregador = (Element) document.createElement(agregadorNombre);
 			Element depuracion = (Element) document.createElement("Depuracion");
 			
 			root.appendChild(agregador);
@@ -466,15 +251,11 @@ public class GestionarParametrizacion {
 				
 				numero.appendChild(document.createTextNode(depuracionX.getNumero()));
 				codigoError.appendChild(document.createTextNode(depuracionX.getEstadoTransaccion()));
-				descripcionEstado.appendChild(document.createTextNode(depuracionX.getDescripcionEstado()));
-				
+				descripcionEstado.appendChild(document.createTextNode(depuracionX.getDescripcionEstado()));				
 			}
 		}
-				
-		document.getDocumentElement().normalize();
-
-		xmlOut(document, new StreamResult(System.out));
-
+		document.getDocumentElement().normalize();		
+		return xmlOut(document);		
 	}
 	
 	/**
@@ -485,7 +266,7 @@ public class GestionarParametrizacion {
 	 * @return void
 	 * @throws javax.xml.transform.TransformerException
 	 * */
-	private void xmlOut( org.w3c.dom.Node document, javax.xml.transform.stream.StreamResult result)  
+	private String xmlOut( org.w3c.dom.Node document)  
 			throws javax.xml.transform.TransformerException 
 	{
 		// usamos una fabrica de transformacion para la salida del document
@@ -499,19 +280,22 @@ public class GestionarParametrizacion {
 		{
 			throw new javax.xml.transform.TransformerConfigurationException("error en la fabrica de transformación");
 		}
-
+		
+		StringWriter writer = new StringWriter();
 		
 		try 
 		{
 			// cargamos nuestro insumo para la transformacion
 			javax.xml.transform.dom.DOMSource source = new javax.xml.transform.dom.DOMSource(document);
 			//transformacion
-			transformer.transform(source, result);
+			transformer.transform(source, new StreamResult(writer));
 		} 
 		catch (javax.xml.transform.TransformerException e) 
 		{
 			throw new javax.xml.transform.TransformerException("error en la transformación");
 		}
+		
+		return writer.getBuffer().toString();
 	}
 	
 	public String xmlError(ErroresSDA error)
@@ -557,20 +341,69 @@ public class GestionarParametrizacion {
 	{
 		this.ejecucion = ejecucion;
 	}
+
 	
 	/**
-	 * Clase interna de {@link GestionarParametrizacion} para contener las respuestas de cada agregador
+	 * Llena los parametros que serviran de insumo para la invocacion de los
+	 * metodos web y estos se mantendran en memoria para agregar mas parametros
+	 * mas adelante, en este caso se llenan primeramente con los de la tabla de
+	 * la base de datos SDA_PARAMETROS_SISTEMA, luego se ejan unos explicitos
+	 * 
 	 * @author Edwin Mejia - Avantia Consultores
-	 * @version 1.0
+	 * @param movil {@link String}
+	 * @param metodo {@link Metodos}
+	 * @return {@link Void}
 	 * */
-	class contenedorRespuestas implements Serializable
-	{
-		private static final long serialVersionUID = 1L;
-		private HashMap<String, List<LogDepuracion>> data = new HashMap<String, List<LogDepuracion>>();
+	@SuppressWarnings("unchecked")
+	private void llenarParametros() throws NoSuchAlgorithmException 
+	{	
+		//iniciamos el listado de parametros con los que se trataran los mensajes de envio para los servicios web
+		setParametrosData(new HashMap<String, String>());
 		
-		private HashMap<String, List<LogDepuracion>> getData() 
+		//colocamos el numero en una lista en memoria para que este listo por cualquier exepciones
+		//getParametrosData().put("movil", movil);
+		
+		//se consultan los parametros del sistema de la base de datos 
+		//porque de ahi podremos tener una inyeccion automatica de parametros a los mensajes de envio
+		List<ParametrosSistema> parametrosSistemas = (List<ParametrosSistema>) (List<?>)getEjecucion().listData("FROM SDA_PARAMETROS_SISTEMA");
+		for (ParametrosSistema parametrosSistema : parametrosSistemas) 
 		{
-			return data;
+			// se colocan los parametros del sistema a la data que nos servira de insumo para los parametros web
+			getParametrosData().put(parametrosSistema.getDato(), parametrosSistema.getValor());
 		}
+		getParametrosData().put("date", new Date().toString());
+		getParametrosData().put("fecha", new Date().toString());
+		getParametrosData().put("dateSMT", fechaFormated());
+		getParametrosData().put("nonce", java.util.UUID.randomUUID().toString());
+		
+		System.out.println("debio de tener este tamaño hasta el final " + getParametrosData().size());
+		//getParametrosData().put("pass", getListaNegra().getContrasenia());
+		//getParametrosData().put("user", getListaNegra().getUsuario());
+		//getParametrosData().put("passSMT", contraseniaSMT(getParametrosData().get("nonce"), getParametrosData().get("dateSMT"), getListaNegra().getContrasenia()));
+	}
+	
+	/**
+	 * Metodo que se encarga de formatear la fecha asi como fue solictado por el SMT
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * @return {@link String}
+	 * */
+	private String fechaFormated(){
+    	SimpleDateFormat dateT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+    	return dateT.format(Calendar.getInstance().getTime());
+    }
+	
+	/**
+	 * @return the parametrosData
+	 */
+	private HashMap<String, String> getParametrosData() {
+		return parametrosData;
+	}
+
+	/**
+	 * @param parametrosData the parametrosData to set
+	 */
+	private void setParametrosData(HashMap<String, String> parametrosData) {
+		this.parametrosData = parametrosData;
 	}
 }

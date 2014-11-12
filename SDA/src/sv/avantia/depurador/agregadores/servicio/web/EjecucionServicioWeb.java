@@ -42,11 +42,8 @@ public class EjecucionServicioWeb {
 		{
 			leerInsumos(moviles);
 		} catch (Exception e) {
-			// TODO: se debe dejar en buen estado la respuesta de error esto
-			// solo es una simulacion quitar .tostring
-			// esto solo es por
 			if (getRespuesta() == null)
-				setRespuesta(getGestion().xmlError(ErroresSDA.ERROR_GENERICO).toString());
+				setRespuesta(getGestion().xmlError(ErroresSDA.ERROR_GENERICO));
 			return getRespuesta();
 		}
 		
@@ -71,16 +68,14 @@ public class EjecucionServicioWeb {
 		{
 			leerInsumos(moviles);
 		} catch (Exception e) {
-			// TODO: se debe dejar en buen estado la respuesta de error esto
-			// solo es una simulacion quitar .tostring
-			// esto solo es por
 			if (getRespuesta() == null)
-				setRespuesta(getGestion().xmlError(ErroresSDA.ERROR_GENERICO).toString());
+				setRespuesta(getGestion().xmlError(ErroresSDA.ERROR_GENERICO));
 			return getRespuesta();
 		}
 		
 		try {
-			return getGestion().altaListaNegra(getListaMoviles(),	"Servicio Web");
+			// el nombre 'Alta Servicio Web' de sirve de bandera para realizar el alta
+			return getGestion().depuracionBajaMasiva(getListaMoviles(),	"Alta Servicio Web", true);
 		} finally {
 			setGestion(null);
 		}
@@ -97,8 +92,7 @@ public class EjecucionServicioWeb {
 	 * */
 	private void leerInsumos(String insumoXML) {
 
-		DocumentBuilderFactory builderFactory = DocumentBuilderFactory
-				.newInstance();
+		DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
 		DocumentBuilder builder;
 		try {
 			builder = builderFactory.newDocumentBuilder();

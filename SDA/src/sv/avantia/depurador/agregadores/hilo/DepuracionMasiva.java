@@ -3,9 +3,7 @@ package sv.avantia.depurador.agregadores.hilo;
 import java.io.StringWriter;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -178,8 +176,9 @@ public class DepuracionMasiva {
 	 * @throws Exception 
 	 * 
 	 * */
-	public List<LogDepuracion> procesarDepuracion()
-	{		
+	
+	public HashMap<String, List<LogDepuracion>> procesarDepuracion()
+	{				
 		// iniciamos el listado de respuestas 
 		setRespuestas(new ArrayList<LogDepuracion>());
 		
@@ -199,7 +198,7 @@ public class DepuracionMasiva {
 					for (String movil : getMoviles()) 
 					{
 						//iniciamos el listado de parametros con los que se trataran los mensajes de envio para los servicios web
-						setParametrosData(new HashMap<String, String>());
+						//setParametrosData(new HashMap<String, String>());
 						
 						//colocamos el numero en una lista en memoria para que este listo por cualquier exepciones
 						getParametrosData().put("movil", movil);
@@ -222,7 +221,9 @@ public class DepuracionMasiva {
 		}
 		
 		//retornamos las respuestas
-		return getRespuestas();
+		HashMap<String, List<LogDepuracion>> respuestaOut = new HashMap<String, List<LogDepuracion>>();
+		respuestaOut.put(getAgregador().getNombre_agregador(), getRespuestas());
+		return respuestaOut;
 	}
 	
 	/**
@@ -232,7 +233,7 @@ public class DepuracionMasiva {
 	 * @param movil {@link String} numero de celular procesado
 	 * @return {@link String}
 	 * */
-	private synchronized void invocacionPorNumero(String movil)
+	private void invocacionPorNumero(String movil)
 	{
 		//se extraen los metodos esperados 
 		//ya que llevan un orden de ejecucion y solo se esperan tres tipos de metodos
@@ -253,12 +254,13 @@ public class DepuracionMasiva {
 		//llenar los parametros para los metodos web.
 		try {
 			llenarParametros(movil);
-		} catch (NoSuchAlgorithmException e) {
+		} catch (Exception e) {
 			guardarRespuesta(null, null, ESTADO_ERROR, ErroresSDA.ERROR_AL_LLENAR_LOS_PARAMETROS_DE_COMUNICACION_CON_LOS_AGREGADORES.getDescripcion(), null);
 		}
 		
 		logger.debug("SE DEPURARA EL NUMERO " + movil + 
 				" EN LOS " + getAgregador().getMetodos().size() + " METODOS PARAMETRIZADOS " +
+				(getListaNegra()!=null && getTipoDepuracion().equals("Alta Servicio Web")?" ALTA EN LISTA NEGRA":"")+
 				(getListaNegra()!=null?" LISTA NEGRA":"")+
 				(getConsulta()!= null?" CONSULTA DE SERVICIOS":"")+
 				(getBaja()!=null?" BAJAR SERVICIOS ACTIVOS":""));
@@ -273,6 +275,9 @@ public class DepuracionMasiva {
 			logger.debug("SE EJECUTARA LA BAJA EN LISTA NEGRA PARA EL AGREGADOR " + getAgregador().getNombre_agregador());
 			lecturaMetodoWeb(getListaNegra(), 1);
 		}
+		// Si es la peticion de alta por servicio web solo debe ejecutar la accion anterior y terminar - por reutilizacion de codigo esta asi
+		if(getTipoDepuracion().equals("Alta Servicio Web"))
+			return;
 		
 		//********* CONSULTA DE SERVICIOS **********//
 		if(getConsulta()!=null)
@@ -301,43 +306,18 @@ public class DepuracionMasiva {
 	 * @param metodo {@link Metodos}
 	 * @return {@link Void}
 	 * */
-	@SuppressWarnings("unchecked")
 	private void llenarParametros(String movil) throws NoSuchAlgorithmException 
 	{	
-		//iniciamos el listado de parametros con los que se trataran los mensajes de envio para los servicios web
-		setParametrosData(new HashMap<String, String>());
-		
-		//colocamos el numero en una lista en memoria para que este listo por cualquier exepciones
 		getParametrosData().put("movil", movil);
 		
-		//se consultan los parametros del sistema de la base de datos 
-		//porque de ahi podremos tener una inyeccion automatica de parametros a los mensajes de envio
-		List<ParametrosSistema> parametrosSistemas = (List<ParametrosSistema>) (List<?>)getEjecucion().listData("FROM SDA_PARAMETROS_SISTEMA");
-		for (ParametrosSistema parametrosSistema : parametrosSistemas) 
-		{
-			if(parametrosSistema.getDato().equals("timeOutWebServices"))
-			{
-				//trato especial porque debemos convertirlo a long desde el string obtenido
-				setTimeOutMillisecond(new Long(parametrosSistema.getValor()).longValue());
-			}
-			else
-			{
-				// se colocan los parametros del sistema a la data que nos servira de insumo para los parametros web
-				getParametrosData().put(parametrosSistema.getDato(), parametrosSistema.getValor());
-			}
-			
-		}
+		//trato especial porque debemos convertirlo a long desde el string obtenido
+		setTimeOutMillisecond(new Long(getParametrosData().get("timeOutWebServices")));
 		
-		getParametrosData().put("date", new Date().toString());
-		getParametrosData().put("fecha", new Date().toString());
-		getParametrosData().put("dateSMT", fechaFormated());
-		getParametrosData().put("nonce", java.util.UUID.randomUUID().toString());
 		getParametrosData().put("pass", getListaNegra().getContrasenia());
 		getParametrosData().put("user", getListaNegra().getUsuario());
 		getParametrosData().put("passSMT", contraseniaSMT(getParametrosData().get("nonce"), getParametrosData().get("dateSMT"), getListaNegra().getContrasenia()));
-		
 	}
-	
+
 	/**
 	 * Metodo que genera la contraseña de seguridad para el agregador del SMT
 	 * 
@@ -364,17 +344,6 @@ public class DepuracionMasiva {
 	}
 	
 	/**
-	 * Metodo que se encarga de formatear la fecha asi como fue solictado por el SMT
-	 * 
-	 * @author Edwin Mejia - Avantia Consultores
-	 * @return {@link String}
-	 * */
-	private String fechaFormated(){
-    	SimpleDateFormat dateT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-    	return dateT.format(Calendar.getInstance().getTime());
-    }
-	
-	/**
 	 * Metodo que recibe el documento Soap Response y este hace la lectura de la
 	 * lista de nodos que obtiene para procesarlos y buscar la {@link Respuesta}
 	 * deseada
@@ -384,7 +353,7 @@ public class DepuracionMasiva {
 	 * @param lectura - este parametro espera saber la forma en como leera la respuesta del metodo web 
 	 * @return {@link Void}
 	 * */
-	private synchronized void lecturaMetodoWeb(Metodos metodo, int lectura) 
+	private void lecturaMetodoWeb(Metodos metodo, int lectura) 
 	{
 		//en este momento se envia a realizar la invocacion del metodo web.
 		Document doc = invocarMetodoWeb(metodo);
@@ -521,6 +490,10 @@ public class DepuracionMasiva {
 		if(metodo.getMetodo()==3)
 			metodo.setInputMessageText(mensajeEnvioBajaOriginal);
 		
+		// Cambiamos la accion a alta en lista negra exclusivo del Alta Servicio Web
+		if(getTipoDepuracion().equals("Alta Servicio Web"))
+			getParametrosData().put("accion", "1");
+		
 		//verificamos si tiene parametros parametrizados el metodo para hacer la susticion de valores pertinentes
 		if (metodo.getParametros() != null) 
 		{
@@ -529,6 +502,10 @@ public class DepuracionMasiva {
 				metodo.setInputMessageText(metodo.getInputMessageText().replace(("_*" + parametro.getNombre() + "_*").toString() , (getParametrosData().get(parametro.getNombre())==null?"":getParametrosData().get(parametro.getNombre()))  ));
 			}
 		}
+		
+		// Cambiamos la accion a baja en lista negra como normalmente se encuentra
+		if(getTipoDepuracion().equals("Alta Servicio Web"))
+			getParametrosData().put("accion", "2");
 		
 		//si el metodo es el de baja limpiamos de los parametros del sistema con los valores propios de la consulta 
 		//para que estos datos sean cargados por cada servicio que se dara de baja
@@ -934,7 +911,7 @@ public class DepuracionMasiva {
 	/**
 	 * @param parametrosData the parametrosData to set
 	 */
-	private void setParametrosData(HashMap<String, String> parametrosData) {
+	public void setParametrosData(HashMap<String, String> parametrosData) {
 		this.parametrosData = parametrosData;
 	}
 

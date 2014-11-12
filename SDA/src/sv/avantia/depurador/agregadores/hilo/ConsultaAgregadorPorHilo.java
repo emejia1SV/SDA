@@ -1,6 +1,8 @@
 package sv.avantia.depurador.agregadores.hilo;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 import org.apache.log4j.Logger;
 
@@ -8,7 +10,7 @@ import sv.avantia.depurador.agregadores.entidades.Agregadores;
 import sv.avantia.depurador.agregadores.entidades.LogDepuracion;
 import sv.avantia.depurador.agregadores.entidades.UsuarioSistema;
 
-public class ConsultaAgregadorPorHilo extends Thread {
+public class ConsultaAgregadorPorHilo implements Callable<HashMap<String, List<LogDepuracion>>> {
 	
 	/**
 	 * construct default
@@ -20,14 +22,13 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	}
 	
 	/**
-	 * construct
+	 * Instancia de un {@link HashMap} para mantener en memoria los parametros
+	 * con los que me serviran de insumo para llenar los parametros requeridos
+	 * por los agregadores
 	 * 
 	 * @author Edwin Mejia - Avantia Consultores
-	 * @param name
 	 * */
-	public ConsultaAgregadorPorHilo(String name){
-		super.setName(name);
-	}
+	private HashMap<String, String> parametrosData = null;
 	
 	/**
 	 * Instancia del insumo {@link List} de {@link String} donde se espera
@@ -68,47 +69,36 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	 * */
 	public static Logger logger = Logger.getLogger("avantiaLogger");
 	
-	/**
-	 * Objeto respuesta que se retornara
-	 * 
-	 * @author Edwin Mejia - Avantia Consultores
-	 * */
-	List<LogDepuracion> respuestas;
-	
-	/**
-	 * Bandera si se puede obtener datos 
-	 * 
-	 * @author Edwin Mejia - Avantia Consultores
-	 * */
-	boolean sePuedeObtenerRespuesta=false;
-	
-	
-	@SuppressWarnings({ "static-access", "deprecation" })
-	public void run() {
+	@Override
+	public HashMap<String, List<LogDepuracion>> call() throws Exception {
+		//long initLocal = System.currentTimeMillis();
 		DepuracionMasiva depuracion = new DepuracionMasiva();
 		try {
+			//colocamos nombre al hilo para entender en el log de que agregador estamos hablando
+			if(!Thread.currentThread().getName().equals(getAgregador().getNombre_agregador()) )
+				Thread.currentThread().setName(getAgregador().getNombre_agregador()); 
 			
+			//entregamos el insumo a la clase de la depuracion
 			depuracion.setAgregador(getAgregador());
 			depuracion.setMoviles(getMoviles());
 			depuracion.setTipoDepuracion(getTipoDepuracion());
 			depuracion.setUsuarioSistema(getUsuarioSistema());
+			depuracion.setParametrosData(getParametrosData());
 			
-			logger.info("=======================	SE CONSULTARA EL AGREGADOR " + getAgregador().getNombre_agregador() + "	=======================" + getMoviles().size() );
+			logger.info("SE CONSULTARA EL AGREGADOR " + getAgregador().getNombre_agregador() + " CON LA CANTIDAD DE " + getMoviles().size() + " NUMEROS" );
 			
-			setRespuestas(depuracion.procesarDepuracion());
-			setSePuedeObtenerRespuesta(true);
-			this.sleep(120000); //esperamos 2 minutos para que sea recojida la respuesta de este hilo.
-		
+			return depuracion.procesarDepuracion();
 		} 
 		catch (Exception e) 
 		{
 			logger.error("ERROR DE EJECUCION DENTRO DE LA DEPURACION DEL AGREGADOR " + getAgregador().getNombre_agregador() + e.getMessage(), e);
 			depuracion = null;
-			this.stop();
+			return new HashMap<String, List<LogDepuracion>>();
 		} finally
 		{
+			//System.out.println("se tardo " + getAgregador().getNombre_agregador() + " " + (System.currentTimeMillis() - initLocal) );
 			depuracion = null;
-			logger.info("======== SE TERMINO DE EJECUTAR EL HILO PARA EL AGREGADOR " + getAgregador().getNombre_agregador() + " ========");
+			logger.info("SE TERMINO DE EJECUTAR EL AGREGADOR " + getAgregador().getNombre_agregador());
 		}
 	}
 
@@ -167,32 +157,18 @@ public class ConsultaAgregadorPorHilo extends Thread {
 	public void setTipoDepuracion(String tipoDepuracion) {
 		this.tipoDepuracion = tipoDepuracion;
 	}
-
+	
 	/**
-	 * @return the respuestas
+	 * @return the parametrosData
 	 */
-	public List<LogDepuracion> getRespuestas() {
-		return respuestas;
+	private HashMap<String, String> getParametrosData() {
+		return parametrosData;
 	}
 
 	/**
-	 * @param respuestas the respuestas to set
+	 * @param parametrosData the parametrosData to set
 	 */
-	private void setRespuestas(List<LogDepuracion> respuestas) {
-		this.respuestas = respuestas;
-	}
-
-	/**
-	 * @return the sePuedeObtenerRespuesta
-	 */
-	public boolean isSePuedeObtenerRespuesta() {
-		return sePuedeObtenerRespuesta;
-	}
-
-	/**
-	 * @param sePuedeObtenerRespuesta the sePuedeObtenerRespuesta to set
-	 */
-	private void setSePuedeObtenerRespuesta(boolean sePuedeObtenerRespuesta) {
-		this.sePuedeObtenerRespuesta = sePuedeObtenerRespuesta;
+	public void setParametrosData(HashMap<String, String> parametrosData) {
+		this.parametrosData = parametrosData;
 	}
 }
