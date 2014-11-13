@@ -74,7 +74,7 @@ public class GestionarParametrizacion {
 	 */
 	public String depuracionBajaMasiva(List<String> moviles, String tipoDepuracion, boolean obtenerRespuesta) {
 		long init = System.currentTimeMillis();
-		long tiempoEsperaProceso = System.currentTimeMillis() + 40000; //tiempo maximo para procesar todo.
+		//long tiempoEsperaProceso = System.currentTimeMillis() + 120000; //tiempo maximo para procesar todo.
 		List<String> numerosPorPais = new ArrayList<String>();
 		List<ConsultaAgregadorPorHilo> hilosParaEjecutar = new ArrayList<ConsultaAgregadorPorHilo>();
 		
@@ -174,10 +174,10 @@ public class GestionarParametrizacion {
 					break;
 				
 				// lo mucho que nos quedaremos esperando - Caso extremo
-				if(System.currentTimeMillis() > tiempoEsperaProceso){
-					System.out.println(getData().entrySet().size() + "  >  " + hilosParaEjecutar.size());
+				/*if(System.currentTimeMillis() > tiempoEsperaProceso){
+					logger.debug(getData().entrySet().size() + "  >  " + hilosParaEjecutar.size());
 					break;
-				}
+				}*/
 					
 			}
 			System.out.println("Esperamos " + (System.currentTimeMillis() - initLocal));
@@ -294,6 +294,9 @@ public class GestionarParametrizacion {
 		{
 			throw new javax.xml.transform.TransformerException("error en la transformación");
 		}
+		
+		logger.debug("Respuesta enviada en xml");
+		logger.debug(writer.getBuffer().toString());
 		
 		return writer.getBuffer().toString();
 	}
