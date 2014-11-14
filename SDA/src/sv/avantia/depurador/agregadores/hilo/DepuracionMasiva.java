@@ -98,8 +98,6 @@ public class DepuracionMasiva {
 				Thread.sleep(100);
 			}
 	        					
-			System.out.println("comenzamos a esperar " + contadorRespuestasObtendas + "  >  " + getParaProcesarData().size());
-			long initLocal = System.currentTimeMillis();
 			//nos quedamos esperando todas las respuestas
 			while(true)
 			{
@@ -108,9 +106,6 @@ public class DepuracionMasiva {
 				if(contadorRespuestasObtendas >= getParaProcesarData().size())
 					break;
 			}
-			System.out.println("Esperamos yyy " + (System.currentTimeMillis() - initLocal));
-			
-			
 		} 
 		catch (Exception e) 
 		{
@@ -124,10 +119,8 @@ public class DepuracionMasiva {
 			respuestaOut.put(getParaProcesarData().get(0).getAgregador().getNombre_agregador(), getRespuestas());
 			return respuestaOut;
 		} catch (Exception e) {
-			System.out.println("cagadaaaaa");
+			logger.error("No e pudo poner el resultado en el hashmap", e);
 			return new HashMap<String, List<LogDepuracion>>();
-		}finally{
-			System.out.println("salu lulu");
 		}
 		
 	}

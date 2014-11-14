@@ -72,8 +72,8 @@ public class ConsultaAgregadorPorHilo implements Callable<HashMap<String, List<L
 	public static Logger logger = Logger.getLogger("avantiaLogger");
 	
 	@Override
-	public HashMap<String, List<LogDepuracion>> call() throws Exception {
-		long initLocal = System.currentTimeMillis();
+	public HashMap<String, List<LogDepuracion>> call() throws Exception 
+	{
 		DepuracionMasiva depuracion = new DepuracionMasiva();
 		try {
 			//colocamos nombre al hilo para entender en el log de que agregador estamos hablando
@@ -130,7 +130,6 @@ public class ConsultaAgregadorPorHilo implements Callable<HashMap<String, List<L
 			return new HashMap<String, List<LogDepuracion>>();
 		} finally
 		{
-			System.out.println("se tardo " + getAgregador().getNombre_agregador() + " " + (System.currentTimeMillis() - initLocal) );
 			depuracion = null;
 			logger.info("SE TERMINO DE EJECUTAR EL AGREGADOR " + getAgregador().getNombre_agregador());
 		}

@@ -83,8 +83,6 @@ public class GestionarParametrizacion {
 	 * @param args
 	 */
 	public String depuracionBajaMasiva(List<String> moviles, String tipoDepuracion, boolean obtenerRespuesta) {
-		long init = System.currentTimeMillis();
-		//long tiempoEsperaProceso = System.currentTimeMillis() + 120000; //tiempo maximo para procesar todo.
 		List<String> numerosPorPais = new ArrayList<String>();
 		List<ConsultaAgregadorPorHilo> hilosParaEjecutar = new ArrayList<ConsultaAgregadorPorHilo>();
 		
@@ -129,18 +127,15 @@ public class GestionarParametrizacion {
 									//verificammos que por lo menos un agregador este parametrizado con metodos
 									if(!agregador.getMetodos().isEmpty())
 									{	
-										//TODO: prueba por favor quitar esto en vida real
-										//if(agregador.getId().intValue() == 10 || agregador.getId().intValue() == 22 || agregador.getId().intValue() == 2){
-											// abrir un hilo pr cada agregador parametrizados
-											ConsultaAgregadorPorHilo hilo = new ConsultaAgregadorPorHilo();
-											hilo.setMoviles(numerosPorPais);
-											hilo.setAgregador(agregador);
-											hilo.setTipoDepuracion(tipoDepuracion);
-											hilo.setUsuarioSistema(getEjecucion().usuarioMaestro());
-											hilo.setParametrosData(getParametrosData());
-											
-											hilosParaEjecutar.add(hilo);
-										//}
+										// abrir un hilo pr cada agregador parametrizados
+										ConsultaAgregadorPorHilo hilo = new ConsultaAgregadorPorHilo();
+										hilo.setMoviles(numerosPorPais);
+										hilo.setAgregador(agregador);
+										hilo.setTipoDepuracion(tipoDepuracion);
+										hilo.setUsuarioSistema(getEjecucion().usuarioMaestro());
+										hilo.setParametrosData(getParametrosData());
+										
+										hilosParaEjecutar.add(hilo);
 									}
 								}
 							}
@@ -179,10 +174,6 @@ public class GestionarParametrizacion {
 			}
 			
 	        
-	        System.out.println("obtencion final ... ");
-			logger.info("hilos que seran leidos " + hilosParaEjecutar.size());
-			System.out.println("comenzamos a esperar " + contadorRespuestasObtendas + "  >  " + hilosParaEjecutar.size());
-			long initLocal = System.currentTimeMillis();
 			//nos quedamos esperando todas las respuestas
 			while(true)
 			{
@@ -191,7 +182,6 @@ public class GestionarParametrizacion {
 				if(contadorRespuestasObtendas >= hilosParaEjecutar.size())
 					break;
 			}
-			System.out.println("Esperamos xxxxx " + (System.currentTimeMillis() - initLocal));
 	        
 			//generamos la respuesta como la tengamos
 			return generar();
@@ -206,7 +196,6 @@ public class GestionarParametrizacion {
 		{
 			moviles = null;
 			setEjecucion(null);
-			logger.info("finalizo la depuración de los numeros en " + ((System.currentTimeMillis() - init)/1000)  + "Segundos");
 		}
 	}	
 	
@@ -225,9 +214,6 @@ public class GestionarParametrizacion {
 	
 	private String generar() throws ParserConfigurationException, TransformerException 
 	{
-		long initLocal = System.currentTimeMillis();
-		
-		System.out.println("iniciamos al generacion del XML");
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		DocumentBuilder builder = factory.newDocumentBuilder();
 		Document document = builder.newDocument();
@@ -266,7 +252,6 @@ public class GestionarParametrizacion {
 			}
 		}
 		document.getDocumentElement().normalize();		
-		System.out.println("Se termino de crear ahora solo toca imprimir " + (System.currentTimeMillis() - initLocal));
 		return xmlOut(document);		
 	}
 	
@@ -391,10 +376,6 @@ public class GestionarParametrizacion {
 		getParametrosData().put("dateSMT", fechaFormated());
 		getParametrosData().put("nonce", java.util.UUID.randomUUID().toString());
 		
-		System.out.println("debio de tener este tamaño hasta el final " + getParametrosData().size());
-		//getParametrosData().put("pass", getListaNegra().getContrasenia());
-		//getParametrosData().put("user", getListaNegra().getUsuario());
-		//getParametrosData().put("passSMT", contraseniaSMT(getParametrosData().get("nonce"), getParametrosData().get("dateSMT"), getListaNegra().getContrasenia()));
 	}
 	
 	/**
