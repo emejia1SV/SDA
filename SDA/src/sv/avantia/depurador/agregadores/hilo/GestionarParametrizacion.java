@@ -67,6 +67,16 @@ public class GestionarParametrizacion {
 	private HashMap<String, String> parametrosData = null;
 	
 	/**
+	 * Bandera que nos servira para conocer las veces en que se ha recibido
+	 * respuestas desde la depuracion por numero a traves de hilo de ejecucion
+	 * 
+	 * @author Edwin Mejia - Avantia Consultores
+	 * */
+	private int contadorRespuestasObtendas = 0;
+	
+	private ConsultaAgregadorPorHilo agregadorPorHilo;
+	
+	/**
 	 * Metodo que inicializara todo el flujo del JAR ejecutable
 	 * 
 	 * @author Edwin Mejia - Avantia Consultores
@@ -119,15 +129,18 @@ public class GestionarParametrizacion {
 									//verificammos que por lo menos un agregador este parametrizado con metodos
 									if(!agregador.getMetodos().isEmpty())
 									{	
-								        // abrir un hilo pr cada agregador parametrizados
-										ConsultaAgregadorPorHilo hilo = new ConsultaAgregadorPorHilo();
-										hilo.setMoviles(numerosPorPais);
-										hilo.setAgregador(agregador);
-										hilo.setTipoDepuracion(tipoDepuracion);
-										hilo.setUsuarioSistema(getEjecucion().usuarioMaestro());
-										hilo.setParametrosData(getParametrosData());
-										
-										hilosParaEjecutar.add(hilo);
+										//TODO: prueba por favor quitar esto en vida real
+										//if(agregador.getId().intValue() == 10 || agregador.getId().intValue() == 22 || agregador.getId().intValue() == 2){
+											// abrir un hilo pr cada agregador parametrizados
+											ConsultaAgregadorPorHilo hilo = new ConsultaAgregadorPorHilo();
+											hilo.setMoviles(numerosPorPais);
+											hilo.setAgregador(agregador);
+											hilo.setTipoDepuracion(tipoDepuracion);
+											hilo.setUsuarioSistema(getEjecucion().usuarioMaestro());
+											hilo.setParametrosData(getParametrosData());
+											
+											hilosParaEjecutar.add(hilo);
+										//}
 									}
 								}
 							}
@@ -136,11 +149,9 @@ public class GestionarParametrizacion {
 				}				
 			}	
 
-			//Get ExecutorService from Executors utility class, thread pool size is 10
-	        ExecutorService executor = Executors.newFixedThreadPool(hilosParaEjecutar.size());
-	        
-	        for (ConsultaAgregadorPorHilo consultaAgregadorPorHilo : hilosParaEjecutar) {
-	        	final Future<HashMap<String, List<LogDepuracion>>> future = executor.submit(consultaAgregadorPorHilo);
+			for (ConsultaAgregadorPorHilo consultaAgregadorPorHilo : hilosParaEjecutar)  
+			{	
+	        	//future = executor.submit(porNumero);
 	        	Thread taskInvoke;
 				Runnable run = new Runnable() 
 				{
@@ -148,7 +159,11 @@ public class GestionarParametrizacion {
 					{
 						try 
 						{
+							ExecutorService executor = Executors.newSingleThreadExecutor();
+							Future<HashMap<String, List<LogDepuracion>>> future = executor.submit(agregadorPorHilo);
 							guardarRespuestaEnContenedor(future.get());
+							contadorRespuestasObtendas++;
+					        executor.shutdown();
 						} 
 						catch (Exception ex) 
 						{
@@ -157,33 +172,26 @@ public class GestionarParametrizacion {
 					}
 				};
 				
+				agregadorPorHilo = consultaAgregadorPorHilo;
 				taskInvoke = new Thread(run);
 				taskInvoke.start();
-	        	//guardarRespuestaEnContenedor(future.get());
+				Thread.sleep(100);
 			}
+			
 	        
-	        
+	        System.out.println("obtencion final ... ");
 			logger.info("hilos que seran leidos " + hilosParaEjecutar.size());
-			System.out.println("comenzamos a esperar " + getData().entrySet().size() + "  >  " + hilosParaEjecutar.size());
+			System.out.println("comenzamos a esperar " + contadorRespuestasObtendas + "  >  " + hilosParaEjecutar.size());
 			long initLocal = System.currentTimeMillis();
 			//nos quedamos esperando todas las respuestas
 			while(true)
 			{
+				Thread.sleep(500);//para no ejecutar tantas veces la misma preguntadera
 				//hasta que las tengamos todas las respuestas dejamos de esperar
-				if(getData().entrySet().size()>=hilosParaEjecutar.size())
+				if(contadorRespuestasObtendas >= hilosParaEjecutar.size())
 					break;
-				
-				// lo mucho que nos quedaremos esperando - Caso extremo
-				/*if(System.currentTimeMillis() > tiempoEsperaProceso){
-					logger.debug(getData().entrySet().size() + "  >  " + hilosParaEjecutar.size());
-					break;
-				}*/
-					
 			}
-			System.out.println("Esperamos " + (System.currentTimeMillis() - initLocal));
-			
-			//shut down the executor service
-	        executor.shutdown();
+			System.out.println("Esperamos xxxxx " + (System.currentTimeMillis() - initLocal));
 	        
 			//generamos la respuesta como la tengamos
 			return generar();
@@ -205,7 +213,7 @@ public class GestionarParametrizacion {
 	private void guardarRespuestaEnContenedor(HashMap<String, List<LogDepuracion>> respuestasObtenidas)
 	{
 		if(respuestasObtenidas.size()>0)
-			getData().putAll(respuestasObtenidas);			
+			getData().putAll(respuestasObtenidas);	
 	}
 	
 	private HashMap<String, List<LogDepuracion>> data = new HashMap<String, List<LogDepuracion>>();
@@ -217,6 +225,9 @@ public class GestionarParametrizacion {
 	
 	private String generar() throws ParserConfigurationException, TransformerException 
 	{
+		long initLocal = System.currentTimeMillis();
+		
+		System.out.println("iniciamos al generacion del XML");
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		DocumentBuilder builder = factory.newDocumentBuilder();
 		Document document = builder.newDocument();
@@ -255,6 +266,7 @@ public class GestionarParametrizacion {
 			}
 		}
 		document.getDocumentElement().normalize();		
+		System.out.println("Se termino de crear ahora solo toca imprimir " + (System.currentTimeMillis() - initLocal));
 		return xmlOut(document);		
 	}
 	
