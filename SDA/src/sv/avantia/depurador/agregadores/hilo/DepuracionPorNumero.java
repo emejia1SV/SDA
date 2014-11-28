@@ -188,7 +188,13 @@ public class DepuracionPorNumero implements Callable<List<LogDepuracion>> {
 		
 		//llenar los parametros para los metodos web.
 		try {
-			llenarParametros();
+			if(getAgregador().getNombre_agregador().equals("SMT")){
+				getParametrosData().put("passSMT", contraseniaSMT(getParametrosData().get("nonce"), getParametrosData().get("dateSMT"), getListaNegra().getContrasenia()));
+			}
+			
+			//trato especial porque debemos convertirlo a long desde el string obtenido
+			setTimeOutMillisecond(new Long(getParametrosData().get("timeOutWebServices")));
+			
 		} catch (Exception e) {
 			guardarRespuesta(null, null, ESTADO_ERROR, ErroresSDA.ERROR_AL_LLENAR_LOS_PARAMETROS_DE_COMUNICACION_CON_LOS_AGREGADORES.getDescripcion(), null);
 		}
@@ -230,26 +236,6 @@ public class DepuracionPorNumero implements Callable<List<LogDepuracion>> {
 		}
 	}
 	
-	/**
-	 * Llena los parametros que serviran de insumo para la invocacion de los
-	 * metodos web y estos se mantendran en memoria para agregar mas parametros
-	 * mas adelante, en este caso se llenan primeramente con los de la tabla de
-	 * la base de datos SDA_PARAMETROS_SISTEMA, luego se ejan unos explicitos
-	 * 
-	 * @author Edwin Mejia - Avantia Consultores
-	 * @param metodo {@link Metodos}
-	 * @return {@link Void}
-	 * */
-	private void llenarParametros() throws NoSuchAlgorithmException 
-	{	
-		//trato especial porque debemos convertirlo a long desde el string obtenido
-		setTimeOutMillisecond(new Long(getParametrosData().get("timeOutWebServices")));
-		
-		getParametrosData().put("pass", getListaNegra().getContrasenia());
-		getParametrosData().put("user", getListaNegra().getUsuario());
-		getParametrosData().put("passSMT", contraseniaSMT(getParametrosData().get("nonce"), getParametrosData().get("dateSMT"), getListaNegra().getContrasenia()));
-	}
-
 	/**
 	 * Metodo que genera la contraseña de seguridad para el agregador del SMT
 	 * 
@@ -432,6 +418,10 @@ public class DepuracionPorNumero implements Callable<List<LogDepuracion>> {
 		if(getTipoDepuracion().equals("Alta Servicio Web"))
 			getParametrosData().put("accion", "1");
 		
+		//tambien agregaremos estos parametros aca para que no exista confuncion
+		getParametrosData().put("pass", metodo.getContrasenia());
+		getParametrosData().put("user", metodo.getUsuario());
+		
 		//verificamos si tiene parametros parametrizados el metodo para hacer la susticion de valores pertinentes
 		if (metodo.getParametros() != null) 
 		{
@@ -539,7 +529,6 @@ public class DepuracionPorNumero implements Callable<List<LogDepuracion>> {
 	    }
 	    catch(TransformerException ex)
 	    {
-	    	//TODO:verificar si podemos sacar este error al exterior
 	    	logger.error( getAgregador().getNombre_agregador() + " Error al querer pasar el Document a cadena de texto");
 	       return "";
 	    }
